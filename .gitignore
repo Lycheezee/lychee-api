@@ -1,0 +1,20 @@
+# package directories
+node_modules
+jspm_packages
+
+# Serverless directories
+.serverless
+s_*
+serverless_sdk
+
+.DS_Store
+.env
+
+src/config/config_local.js
+src/config/config_local*.js
+dist
+.env.production
+.env.local
+
+/.idea
+/.vscode
