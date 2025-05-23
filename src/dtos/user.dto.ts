@@ -2,16 +2,7 @@ import { ExerciseRate } from "../constants/user.enum";
 
 export interface CreateUserDTO {
   email: string;
-  firstName: string;
-  lastName: string;
-  middleName?: string;
-  hashPassword: string;
-  bodyInfo: {
-    weight: number;
-    height: number;
-    exerciseRate: ExerciseRate;
-  };
-  dietPlan: string; // DietPlan ID
+  password: string;
 }
 
 export interface UpdateUserDTO {
@@ -24,4 +15,5 @@ export interface UpdateUserDTO {
     exerciseRate?: ExerciseRate;
   };
   dietPlan?: string;
+  password?: string;
 }

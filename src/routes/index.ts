@@ -1,10 +1,10 @@
-import { Application } from "express";
+import { Router } from "express";
 import userRoutes from "./userRoutes";
 import foodRotes from "./foodRoutes";
 
-const router = (app: Application) => {
-  app.use("user", userRoutes);
-  app.use("food", foodRotes);
-};
+const router = Router();
+
+router.use("/user", userRoutes);
+router.use("/food", foodRotes);
 
 export default router;

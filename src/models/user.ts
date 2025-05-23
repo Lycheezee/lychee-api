@@ -35,12 +35,12 @@ const bodyInfoSchema = new Schema<BodyInfo>(
 const userSchema = new Schema<IUser>(
   {
     email: { type: String, required: true, unique: true },
-    firstName: { type: String, required: true },
-    lastName: { type: String, required: true },
+    firstName: { type: String},
+    lastName: { type: String },
     middleName: { type: String },
     hashPassword: { type: String, required: true },
-    bodyInfo: { type: bodyInfoSchema, required: true },
-    dietPlan: { type: Schema.Types.ObjectId, ref: "dietPlan", required: true },
+    bodyInfo: { type: bodyInfoSchema },
+    dietPlan: { type: Schema.Types.ObjectId, ref: "dietPlan"},
   },
   { timestamps: true }
 );
