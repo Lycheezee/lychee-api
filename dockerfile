@@ -1,22 +1,10 @@
 # Use Node base image
 FROM node:23-alpine
-
-# Set working directory
-WORKDIR /app
-
-# Copy files
+WORKDIR /srv
 COPY package*.json ./
-COPY tsconfig.json ./
+RUN npm install --production
 COPY . .
-
-# Install dependencies
-RUN npm install
-
-# Build the project
-RUN npm run build
-
-# Expose port (Cloud Run default)
+ENV PORT=8080
 EXPOSE 8080
+CMD ["node", "index.js"]
 
-# Start the app
-CMD ["node", "dist/app.js"]

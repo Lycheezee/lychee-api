@@ -4,7 +4,7 @@ name: GCP Cloud Run CI/CD
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   workflow_dispatch:
 
 jobs:
@@ -44,6 +44,9 @@ jobs:
 
       - name: Build Docker image
         run: docker build -t $IMAGE .
+
+      - name: Authenticate Docker for Artifact Registry
+        run: gcloud auth configure-docker asia-southeast1-docker.pkg.dev
 
       - name: Push Docker image
         run: docker push $IMAGE

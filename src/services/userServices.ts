@@ -4,15 +4,7 @@ import { ObjectId } from "mongodb";
 import { calculateBMI } from "../utils/calculateBMI";
 
 export async function createUser(data: CreateUserDTO): Promise<IUser> {
-  const bmi = calculateBMI(data.bodyInfo.weight, data.bodyInfo.height);
-
-  const user = new User({
-    ...data,
-    bodyInfo: {
-      ...data.bodyInfo,
-      bmi,
-    },
-  });
+  const user = new User(data);
 
   return await user.save();
 }
