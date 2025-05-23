@@ -1,0 +1,58 @@
+# .github/workflows/gcp-cloudrun-cicd.yml
+
+name: GCP Cloud Run CI/CD
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    env:
+      PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      SERVICE_NAME: lychee-backend
+      REGION: asia-southeast1
+      IMAGE: gcr.io/${{ secrets.GCP_PROJECT_ID }}/lychee-backend
+      MONGO_URI: ${{ secrets.MONGO_URI }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          export_default_credentials: true
+
+      - name: Configure Docker for GCR
+        run: gcloud auth configure-docker
+
+      - name: Build Docker image
+        run: docker build -t $IMAGE .
+
+      - name: Push Docker image
+        run: docker push $IMAGE
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy $SERVICE_NAME \
+            --image $IMAGE \
+            --platform managed \
+            --region $REGION \
+            --allow-unauthenticated \
+            --set-env-vars "MONGO_URI=$MONGO_URI,JWT_SECRET=$JWT_SECRET"

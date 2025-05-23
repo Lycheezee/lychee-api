@@ -3,7 +3,7 @@
 # ============ CONFIG ============
 PROJECT_ID="Lychee"
 SERVICE_NAME="lychee-backend"
-REGION="us-central1"
+REGION="asia-southeast1"
 IMAGE="gcr.io/$PROJECT_ID/$SERVICE_NAME"
 MONGO_URI="mongodb+srv://linhhoangnguyenngocduy:zZPTeyJzsNyjWheP@lychee.rhhuoxu.mongodb.net/"
 JWT_SECRET="LYCHEE_SECRET"
