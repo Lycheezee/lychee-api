@@ -1,5 +1,6 @@
 import NodeCache from "node-cache";
 import { IUser } from "../models/user";
+import { AuthUser } from "../types/user";
 
 // Cache configuration: TTL of 1 hour (3600 seconds), check period every 10 minutes
 const userCache = new NodeCache({
@@ -10,7 +11,7 @@ const userCache = new NodeCache({
 
 export class CacheService {
   // Cache user by ID
-  static setUser(userId: string, user: IUser): void {
+  static setUser(userId: string, user: AuthUser): void {
     userCache.set(`user:${userId}`, user);
   }
 

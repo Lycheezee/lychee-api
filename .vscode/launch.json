@@ -1,0 +1,65 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Lychee Backend",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/app.ts",
+      "runtimeArgs": ["-r", "ts-node/register"],
+      "env": {
+        "NODE_ENV": "development"
+      },
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"],
+      "restart": true,
+      "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "name": "Debug with ts-node-dev",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:debug"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"],
+      "restart": true,
+      "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "name": "Attach to Process",
+      "type": "node",
+      "request": "attach",
+      "port": 9229,
+      "restart": true,
+      "localRoot": "${workspaceFolder}",
+      "remoteRoot": "${workspaceFolder}",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "name": "Auto Attach Debug",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/app.ts",
+      "runtimeArgs": ["--inspect=9229", "-r", "ts-node/register"],
+      "env": {
+        "NODE_ENV": "development"
+      },
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"],
+      "restart": true,
+      "envFile": "${workspaceFolder}/.env",
+      "autoAttachChildProcesses": true
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Launch Server with Auto Debug",
+      "configurations": ["Auto Attach Debug"],
+      "stopAll": true
+    }
+  ]
+}

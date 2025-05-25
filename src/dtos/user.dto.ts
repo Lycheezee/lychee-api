@@ -1,4 +1,4 @@
-import { ExerciseRate } from "../constants/user.enum";
+import { EGender, ExerciseRate, MacroPreference } from "../constants/user.enum";
 
 export interface CreateUserDTO {
   email: string;
@@ -9,10 +9,12 @@ export interface UpdateUserDTO {
   firstName?: string;
   lastName?: string;
   middleName?: string;
+  gender?: EGender;
   bodyInfo?: {
     weight?: number;
     height?: number;
     exerciseRate?: ExerciseRate;
+    macro_preference?: MacroPreference;
   };
   dietPlan?: string;
   password?: string;

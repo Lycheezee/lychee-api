@@ -1,10 +1,12 @@
+import bcrypt from "bcrypt";
+import { ObjectId } from "mongodb";
+import { ExerciseRate, MacroPreference } from "../constants/user.enum";
 import { CreateUserDTO, UpdateUserDTO } from "../dtos/user.dto";
 import User, { IUser } from "../models/user";
-import { ObjectId } from "mongodb";
+import { AuthUser } from "../types/user";
 import { calculateBMI } from "../utils/calculateBMI";
-import CacheService from "./cacheService";
-import bcrypt from "bcrypt";
 import { generateToken } from "../utils/generateToken";
+import CacheService from "./cacheService";
 
 export async function createUser(data: CreateUserDTO): Promise<IUser> {
   const user = new User(data);
@@ -45,14 +47,17 @@ export async function registerUser(data: CreateUserDTO): Promise<{
 export async function loginUser(
   email: string,
   password: string
-): Promise<{
-  _id: string;
-  email: string;
-  accessToken: string;
-}> {
+): Promise<
+  AuthUser & {
+    accessToken: {
+      token: string;
+      expiresAt: number;
+    };
+  }
+> {
   // Find user by email
-  const user = await User.findOne({ email });
-  if (!user || !(await bcrypt.compare(password, user.hashPassword))) {
+  const { hashPassword, ...user } = await User.findOne({ email }).lean();
+  if (!user || !(await bcrypt.compare(password, hashPassword))) {
     throw new Error("Invalid credentials");
   }
 
@@ -64,8 +69,11 @@ export async function loginUser(
 
   return {
     _id: user._id.toString(),
-    email: user.email,
-    accessToken,
+    ...user,
+    accessToken: {
+      token: accessToken,
+      expiresAt: 60 * 60 * 1000, // 1 hour expiration,
+    },
   };
 }
 
@@ -114,6 +122,15 @@ export async function updateUser(
 
   // Update body info if provided
   if (data.bodyInfo) {
+    if (!user.bodyInfo) {
+      user.bodyInfo = {
+        weight: 0,
+        height: 0,
+        exerciseRate: ExerciseRate.Sedentary, // Default value
+        macro_preference: MacroPreference.BALANCED, // Default value
+        bmi: 0, // Default value
+      };
+    }
     if (data.bodyInfo.weight !== undefined)
       user.bodyInfo.weight = data.bodyInfo.weight;
     if (data.bodyInfo.height !== undefined)

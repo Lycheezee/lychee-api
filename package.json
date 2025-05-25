@@ -5,8 +5,11 @@
   "main": "index.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/app.ts",
+    "dev:debug": "ts-node-dev --inspect=9229 --respawn --transpile-only src/app.ts",
+    "debug": "node --inspect=9229 -r ts-node/register src/app.ts",
     "build": "tsc",
-    "start": "node dist/app.js"
+    "start": "node dist/app.js",
+    "start:debug": "node --inspect=9229 dist/app.js"
   },
   "keywords": [],
   "author": "",
@@ -35,3 +38,4 @@
     "typescript": "^5.8.3"
   }
 }
+

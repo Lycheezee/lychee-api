@@ -1,10 +1,9 @@
-import { Request, Response, NextFunction } from "express";
+import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
-import User from "../models/user";
-import catchAsync from "../utils/catchAsync";
+import User, { IUser } from "../models/user";
 import CacheService from "../services/cacheService";
 import UserContextService from "../services/userContextService";
-import { IUser } from "../models/user";
+import catchAsync from "../utils/catchAsync";
 
 export interface AuthenticatedRequest extends Request {
   user?: IUser;

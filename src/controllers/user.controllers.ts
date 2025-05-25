@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { CreateUserDTO, UpdateUserDTO } from "../dtos/user.dto";
-import catchAsync from "../utils/catchAsync";
 import * as userService from "../services/userServices";
+import catchAsync from "../utils/catchAsync";
 
 export const registerUser = catchAsync(async (req: Request, res: Response) => {
   try {
@@ -43,7 +43,7 @@ export const updateUser = catchAsync(async (req: Request, res: Response) => {
   const userId = (req as any).user?._id;
   if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-  const updateData: UpdateUserDTO = req.body;
+  const updateData: UpdateUserDTO = { bodyInfo: req.body };
   const result = await userService.updateUser(userId.toString(), updateData);
 
   if (!result) return res.status(404).json({ message: "User not found" });
