@@ -31,7 +31,7 @@ const start = async () => {
   // Cloud Run requires listening on process.env.PORT and 0.0.0.0
   const port = +process.env.PORT || 8080;
   logger.info(`Listening on port ${port}`);
-  
+
   app.listen(port, "0.0.0.0", () => {
     logger.info(`Server started at http://0.0.0.0:${port}`);
   });

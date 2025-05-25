@@ -3,9 +3,18 @@ import * as foodService from "../services/foodServices";
 import catchAsync from "../utils/catchAsync";
 import { CreateFoodDTO } from "../dtos/food.dto";
 import { MulterRequest } from "../types/multer";
+import CurrentUser from "../utils/currentUser";
 
 export const createFood = catchAsync(
   async (req: MulterRequest, res: Response) => {
+    // Example of accessing current user globally
+    const currentUser = CurrentUser.get();
+    const currentUserId = CurrentUser.getId();
+
+    console.log(
+      `Food being created by user: ${currentUser?.email} (ID: ${currentUserId})`
+    );
+
     const images = req.files?.map((file) => file.path) || [];
 
     const foodData: CreateFoodDTO = {
