@@ -10,6 +10,7 @@ export interface UpdateUserDTO {
   lastName?: string;
   middleName?: string;
   gender?: EGender;
+  dateOfBirth?: string | Date;
   bodyInfo?: {
     weight?: number;
     height?: number;

@@ -9,7 +9,8 @@
     "debug": "node --inspect=9229 -r ts-node/register src/app.ts",
     "build": "tsc",
     "start": "node dist/app.js",
-    "start:debug": "node --inspect=9229 dist/app.js"
+    "start:debug": "node --inspect=9229 dist/app.js",
+    "import-food-data": "ts-node src/scripts/importFoodData.ts"
   },
   "keywords": [],
   "author": "",
@@ -18,6 +19,7 @@
     "@types/node-cache": "^4.1.3",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
+    "csv-parser": "^3.2.0",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
@@ -25,6 +27,7 @@
     "mongoose": "^8.15.0",
     "multer": "^1.4.5-lts.2",
     "node-cache": "^5.1.2",
+    "ts-node": "^10.9.2",
     "winston": "^3.17.0"
   },
   "devDependencies": {

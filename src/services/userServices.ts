@@ -113,11 +113,14 @@ export async function updateUser(
     (data as any).hashPassword = await bcrypt.hash((data as any).password, 10);
     delete (data as any).password;
   }
-
   // Update user fields
   if (data.firstName !== undefined) user.firstName = data.firstName;
   if (data.lastName !== undefined) user.lastName = data.lastName;
   if (data.middleName !== undefined) user.middleName = data.middleName;
+  if (data.gender !== undefined) user.gender = data.gender;
+  if (data.dateOfBirth !== undefined) {
+    user.dateOfBirth = new Date(data.dateOfBirth);
+  }
   if (data.dietPlan !== undefined) user.dietPlan = new ObjectId(data.dietPlan);
 
   // Update body info if provided
@@ -137,6 +140,8 @@ export async function updateUser(
       user.bodyInfo.height = data.bodyInfo.height;
     if (data.bodyInfo.exerciseRate !== undefined)
       user.bodyInfo.exerciseRate = data.bodyInfo.exerciseRate;
+    if (data.bodyInfo.macro_preference !== undefined)
+      user.bodyInfo.macro_preference = data.bodyInfo.macro_preference;
 
     // Recalculate BMI if weight or height changed
     if (

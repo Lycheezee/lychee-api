@@ -19,6 +19,7 @@ export interface IUser {
   hashPassword: string;
   bodyInfo?: BodyInfo;
   gender?: EGender;
+  dateOfBirth?: Date;
   dietPlan?: Types.ObjectId;
   createdAt?: Date;
   updatedAt?: Date;
@@ -57,6 +58,7 @@ const userSchema = new Schema<IUser>(
       enum: Object.values(EGender),
       default: EGender.PREFER_NOT_TO_SAY,
     },
+    dateOfBirth: { type: Date },
     hashPassword: { type: String, required: true },
     bodyInfo: { type: bodyInfoSchema },
     dietPlan: { type: Schema.Types.ObjectId, ref: "dietPlan" },
