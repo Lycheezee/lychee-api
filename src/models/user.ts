@@ -60,7 +60,7 @@ const userSchema = new Schema<IUser>(
     },
     dateOfBirth: { type: Date },
     hashPassword: { type: String, required: true },
-    bodyInfo: { type: bodyInfoSchema },
+    bodyInfo: { type: bodyInfoSchema, default: {} },
     dietPlan: { type: Schema.Types.ObjectId, ref: "dietPlan" },
   },
   { timestamps: true }

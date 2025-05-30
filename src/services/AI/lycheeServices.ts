@@ -21,7 +21,7 @@ export interface MealPlanResponse {
 }
 
 export class LycheeAIService {
-  private static readonly API_BASE_URL =
+  private static readonly AI_LYCHEE_API_URL =
     process.env.AI_LYCHEE_API_URL || "http://localhost:3000";
 
   /**
@@ -40,7 +40,7 @@ export class LycheeAIService {
     const mealRequest = this.buildMealRequest(currentUser, userOverrides);
 
     try {
-      const response = await fetch(`${this.API_BASE_URL}/api/meal-plan`, {
+      const response = await fetch(`${this.AI_LYCHEE_API_URL}/api/meal-plan`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -74,7 +74,7 @@ export class LycheeAIService {
     const mealRequest = this.buildMealRequest(user, overrides);
 
     try {
-      const response = await fetch(`${this.API_BASE_URL}/api/meal-plan`, {
+      const response = await fetch(`${this.AI_LYCHEE_API_URL}/api/meal-plan`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -105,7 +105,7 @@ export class LycheeAIService {
     user: IUser,
     overrides?: Partial<MealRequest>
   ): MealRequest {
-    if (!user.bodyInfo) {
+    if (!user.bodyInfo && !overrides) {
       throw new Error("User must have body information to generate meal plan");
     }
 
@@ -144,18 +144,25 @@ export class LycheeAIService {
     };
 
     const defaultMacroPreference =
-      user.bodyInfo.macro_preference || MacroPreference.BALANCED;
+      user.bodyInfo?.macro_preference ||
+      overrides.macro_preference ||
+      MacroPreference.BALANCED;
+
+    const defaultExerciseRate =
+      user.bodyInfo?.exerciseRate ||
+      overrides.exercise_rate ||
+      ExerciseRate.Sedentary;
 
     const mealRequest: MealRequest = {
-      height: user.bodyInfo.height,
-      weight: user.bodyInfo.weight,
-      gender: genderMapping[user.gender as EGender] || "other",
-      exercise_rate:
-        exerciseRateMapping[user.bodyInfo.exerciseRate] || "sedentary",
+      height: user.bodyInfo?.height,
+      weight: user.bodyInfo?.weight,
+      gender: genderMapping[user.gender as EGender] || EGender.OTHER,
       dob: this.formatDateOfBirth(user.dateOfBirth),
+      ...overrides,
+      // below include overrides
+      exercise_rate: exerciseRateMapping[defaultExerciseRate] || "sedentary",
       macro_preference:
         macroPreferenceMapping[defaultMacroPreference] || "balanced",
-      ...overrides, // Apply any overrides
     };
 
     return mealRequest;
