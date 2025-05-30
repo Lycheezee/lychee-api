@@ -27,7 +27,6 @@ export async function registerUser(data: CreateUserDTO): Promise<{
 
   // Hash password
   const hashedPassword = await bcrypt.hash(data.password, 10);
-
   // Create user
   const user = await User.create({
     ...data,
@@ -36,6 +35,10 @@ export async function registerUser(data: CreateUserDTO): Promise<{
 
   // Generate token
   const token = generateToken((user._id as ObjectId).toString());
+
+  // Cache user information for faster subsequent requests
+  const userWithoutPassword = { ...user.toObject(), hashPassword: undefined };
+  CacheService.setUser((user._id as ObjectId).toString(), userWithoutPassword);
 
   return {
     _id: (user._id as ObjectId).toString(),
