@@ -17,7 +17,10 @@ export async function createUser(data: CreateUserDTO): Promise<IUser> {
 export async function registerUser(data: CreateUserDTO): Promise<{
   _id: string;
   email: string;
-  token: string;
+  accessToken: {
+    token: string;
+    expiresAt: number;
+  };
 }> {
   // Check if user already exists
   const existing = await User.findOne({ email: data.email });
@@ -43,7 +46,10 @@ export async function registerUser(data: CreateUserDTO): Promise<{
   return {
     _id: (user._id as ObjectId).toString(),
     email: user.email,
-    token,
+    accessToken: {
+      token,
+      expiresAt: 60 * 60 * 1000, // 1 hour expiration,
+    },
   };
 }
 

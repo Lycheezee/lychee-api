@@ -1,9 +1,14 @@
+import { EMealStatus } from "../constants/meal.enum";
 import { Nutrition } from "../models/food";
+
+export interface MealItem {
+  foodId: string;
+  status: EMealStatus;
+}
 
 export interface DailyPlan {
   date: string;
-  foodIds: string[];
-  completions: string[];
+  meals: MealItem[];
 }
 
 export interface CreateDietPlanDTO {

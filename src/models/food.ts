@@ -1,4 +1,4 @@
-import { Schema, model, Document } from "mongoose";
+import { Document, Schema, model } from "mongoose";
 
 export interface Nutrition {
   fats: number;
@@ -8,6 +8,7 @@ export interface Nutrition {
   fibers: number;
   sodium: number;
   cholesterol: number;
+  carbohydrates: number;
   waterIntake: number;
 }
 
@@ -27,6 +28,7 @@ export const nutritionSchema = new Schema<Nutrition>(
     fibers: { type: Number, required: true },
     sodium: { type: Number, required: true },
     cholesterol: { type: Number, required: true },
+    carbohydrates: { type: Number, required: true },
     waterIntake: { type: Number, required: true },
   },
   { _id: false }

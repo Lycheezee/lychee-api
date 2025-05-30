@@ -1,10 +1,15 @@
-import { Schema, model, Document, Types } from "mongoose";
+import { Document, Schema, Types, model } from "mongoose";
+import { EMealStatus } from "../constants/meal.enum";
 import { Nutrition, nutritionSchema } from "./food";
+
+interface MealTarget {
+  foodId: Types.ObjectId;
+  status: EMealStatus;
+}
 
 interface PlanEntry {
   date: Date;
-  foodIds: Types.ObjectId[];
-  completions: Types.ObjectId[];
+  meals: MealTarget[];
   percentageOfCompletions: number;
 }
 
@@ -15,9 +20,17 @@ export interface IDietPlan extends Document {
 
 const planEntrySchema = new Schema<PlanEntry>({
   date: { type: Date, required: true },
-  foodIds: [{ type: Schema.Types.ObjectId, ref: "Food", required: true }],
-  completions: [{ type: Schema.Types.ObjectId, ref: "Food", default: [] }],
   percentageOfCompletions: { type: Number, default: 0 },
+  meals: [
+    {
+      foodId: { type: Schema.Types.ObjectId, ref: "Food", required: true },
+      status: {
+        type: String,
+        enum: Object.values(EMealStatus),
+        default: EMealStatus.NOT_COMPLETED,
+      },
+    },
+  ],
 });
 
 const dietPlanSchema = new Schema<IDietPlan>(
