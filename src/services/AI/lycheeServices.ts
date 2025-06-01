@@ -1,3 +1,4 @@
+import dotenv from "dotenv";
 import {
   EGender,
   ExerciseRate,
@@ -5,6 +6,8 @@ import {
 } from "../../constants/user.enum";
 import { IUser } from "../../models/user";
 import CurrentUser from "../../utils/currentUser";
+
+dotenv.config();
 
 export interface MealRequest {
   height: number;
@@ -15,14 +18,26 @@ export interface MealRequest {
   macro_preference: string;
 }
 
+export interface DurationRequest {
+  days: number;
+}
+
 export interface MealPlanResponse {
   // Define the structure based on what your API returns
   [key: string]: any;
 }
 
+export interface SimilarMealPlansResponse {
+  plans: {
+    [startingFood: string]: {
+      [day: string]: any;
+    };
+  };
+}
+
 export class LycheeAIService {
   private static readonly AI_LYCHEE_API_URL =
-    process.env.AI_LYCHEE_API_URL || "http://localhost:3000";
+    process.env.AI_LYCHEE_API_URL || "http://localhost:8888";
 
   /**
    * Generate a meal plan for the current user
@@ -180,7 +195,6 @@ export class LycheeAIService {
     }
     return date.toISOString().split("T")[0];
   }
-
   /**
    * Validate meal request data
    * @param request Meal request object
@@ -229,6 +243,48 @@ export class LycheeAIService {
     }
 
     return true;
+  }
+
+  /**
+   * Get similar meal plans for a specified duration
+   * @param days Number of days to generate meal plans for
+   * @returns Object containing multiple meal plans
+   */
+  static async getSimilarMealPlans(
+    initMeal: MealRequest,
+    days: number
+  ): Promise<SimilarMealPlansResponse> {
+    if (!days || days <= 0 || days > 30) {
+      throw new Error("Days must be a positive number between 1 and 30");
+    }
+
+    const durationRequest: DurationRequest = { days };
+
+    try {
+      const response = await fetch(
+        `${this.AI_LYCHEE_API_URL}/api/similar-meal-plan`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(durationRequest),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `AI API request failed: ${response.status} ${response.statusText}`
+        );
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error calling similar meal plan API:", error);
+      throw new Error(
+        "Failed to generate similar meal plans. Please try again later."
+      );
+    }
   }
 }
 

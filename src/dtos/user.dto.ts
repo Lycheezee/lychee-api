@@ -19,4 +19,5 @@ export interface UpdateUserDTO {
   };
   dietPlan?: string;
   password?: string;
+  mealsPlanLength?: number;
 }

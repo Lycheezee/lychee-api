@@ -45,9 +45,31 @@ export const updateUser = catchAsync(async (req: Request, res: Response) => {
   if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
   const updateData: UpdateUserDTO = req.body;
+
   const isFirstTimeSetup = req.query.isFirstTimeSetup === "true";
-  if (isFirstTimeSetup) {
-    const mealPlan = await LycheeAIService.generateMealPlan(updateData);
+  const isGettingMealPlan = req.query.getMealPlan === "true";
+
+  let mealPlan = null;
+
+  switch (true) {
+    case isFirstTimeSetup: {
+      if (!updateData.bodyInfo) {
+        return res
+          .status(400)
+          .json({ message: "Body info is required for first time setup" });
+      }
+      mealPlan = (await LycheeAIService.generateMealPlan(updateData.bodyInfo))
+        .meal_plan;
+      break;
+    }
+    case isGettingMealPlan:
+      if (!updateData.bodyInfo) {
+        return res
+          .status(400)
+          .json({ message: "Body info is required to get meal plan" });
+      }
+    mealPlan = (await LycheeAIService.generateMealPlan(updateData.bodyInfo))
+      .meal_plan;
   }
   const result = await userService.updateUser(userId.toString(), updateData);
 
