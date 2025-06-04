@@ -17,6 +17,7 @@ jobs:
       DATABASE_NAME: ${{ secrets.DATABASE_NAME }}
       HOST: ${{ secrets.HOST }}
       IMAGE: gcr.io/${{ secrets.GCP_PROJECT_ID }}/lychee-backend
+      AI_LYCHEE_API_URL: ${{ secrets.AI_LYCHEE_API_URL }}
       MONGO_URI: ${{ secrets.MONGO_URI }}
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
     steps:
@@ -65,4 +66,4 @@ jobs:
             --allow-unauthenticated \
             --vpc-connector cloudrun-connector \
             --vpc-egress all \
-            --set-env-vars JWT_SECRET=$JWT_SECRET,MONGO_URI=$MONGO_URI,HOST=$HOST,DATABASE_NAME=$DATABASE_NAME
+            --set-env-vars JWT_SECRET=$JWT_SECRET,MONGO_URI=$MONGO_URI,HOST=$HOST,DATABASE_NAME=$DATABASE_NAME,AI_LYCHEE_API_URL=$AI_LYCHEE_API_URL \
