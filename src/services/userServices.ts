@@ -64,25 +64,48 @@ export async function loginUser(
     };
   }
 > {
-  // Find user by email
-  const { hashPassword, ...user } = await User.findOne({ email }).lean();
-  if (!user || !(await bcrypt.compare(password, hashPassword))) {
+  // Find user by email with populated fields
+  const userDocument = await User.findOne({ email })
+    .populate({
+      path: "dietPlan",
+      populate: {
+        path: "plan.meals.foodId",
+        model: "Food",
+      },
+    })
+    .lean();
+
+  if (
+    !userDocument ||
+    !(await bcrypt.compare(password, userDocument.hashPassword))
+  ) {
     throw new Error("Invalid credentials");
   }
 
-  // Cache user information for faster subsequent requests
-  CacheService.setUser(user._id.toString(), user);
+  // Remove hashPassword for security and create a properly typed user object
+  const { hashPassword, ...userWithoutPassword } = userDocument;
+
+  // Cache user information with all populated fields for faster subsequent requests
+  CacheService.setUser(
+    userWithoutPassword._id.toString(),
+    userWithoutPassword as any
+  );
 
   // Generate access token
-  const accessToken = generateToken(user._id.toString());
+  const accessToken = generateToken(userWithoutPassword._id.toString());
 
   return {
-    _id: user._id.toString(),
-    ...user,
+    _id: userWithoutPassword._id.toString(),
+    ...userWithoutPassword,
     accessToken: {
       token: accessToken,
       expiresAt: 60 * 60 * 1000, // 1 hour expiration,
     },
+  } as unknown as AuthUser & {
+    accessToken: {
+      token: string;
+      expiresAt: number;
+    };
   };
 }
 
@@ -91,10 +114,21 @@ export async function getUserProfile(userId: string): Promise<IUser | null> {
   let user = CacheService.getUser(userId);
 
   if (!user) {
-    // If not in cache, fetch from database
-    user = await User.findById(userId).select("-hashPassword");
+    // If not in cache, fetch from database with all populated fields
+    user = await User.findById(userId)
+      .select("-hashPassword")
+      .populate({
+        path: "dietPlan",
+        populate: {
+          path: "plan.meals.foodId",
+          model: "Food",
+        },
+      })
+      .lean();
+
     if (user) {
-      // Cache the user for future requests
+      // Cache the user with all populated fields for future requests
+      user = user as IUser;
       CacheService.setUser(userId, user);
     }
   }
@@ -168,11 +202,24 @@ export async function updateUser(
   if ((data as any).hashPassword) {
     user.hashPassword = (data as any).hashPassword;
   }
-
   const updatedUser = await user.save();
 
-  // Update cache with new user data
-  CacheService.setUser(id, updatedUser);
+  // Get the updated user with all populated fields for caching
+  const userWithPopulatedFields = await User.findById(id)
+    .select("-hashPassword")
+    .populate({
+      path: "dietPlan",
+      populate: {
+        path: "plan.meals.foodId",
+        model: "Food",
+      },
+    })
+    .lean();
+
+  // Update cache with new user data including all populated fields
+  if (userWithPopulatedFields) {
+    CacheService.setUser(id, userWithPopulatedFields as IUser);
+  }
 
   return {
     _id: updatedUser._id.toString(),

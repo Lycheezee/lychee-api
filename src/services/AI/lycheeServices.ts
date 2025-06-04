@@ -4,6 +4,7 @@ import {
   ExerciseRate,
   MacroPreference,
 } from "../../constants/user.enum";
+import { DailyPlan } from "../../dtos/dietPlan.dto";
 import { IUser } from "../../models/user";
 import CurrentUser from "../../utils/currentUser";
 
@@ -20,6 +21,7 @@ export interface MealRequest {
 
 export interface DurationRequest {
   days: number;
+  initialMeal: string[];
 }
 
 export interface MealPlanResponse {
@@ -28,11 +30,7 @@ export interface MealPlanResponse {
 }
 
 export interface SimilarMealPlansResponse {
-  plans: {
-    [startingFood: string]: {
-      [day: string]: any;
-    };
-  };
+  plan: DailyPlan[];
 }
 
 export class LycheeAIService {
@@ -251,14 +249,14 @@ export class LycheeAIService {
    * @returns Object containing multiple meal plans
    */
   static async getSimilarMealPlans(
-    initMeal: MealRequest,
+    initialMeal: string[],
     days: number
   ): Promise<SimilarMealPlansResponse> {
     if (!days || days <= 0 || days > 30) {
       throw new Error("Days must be a positive number between 1 and 30");
     }
 
-    const durationRequest: DurationRequest = { days };
+    const durationRequest: DurationRequest = { days, initialMeal };
 
     try {
       const response = await fetch(

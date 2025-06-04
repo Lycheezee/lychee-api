@@ -30,8 +30,8 @@ export interface IUserDocument extends Document, Omit<IUser, "_id"> {}
 
 const bodyInfoSchema = new Schema<BodyInfo>(
   {
-    weight: { type: Number, required: true },
-    height: { type: Number, required: true },
+    weight: { type: Number },
+    height: { type: Number },
     macro_preference: {
       type: String,
       enum: Object.values(MacroPreference),
@@ -40,9 +40,8 @@ const bodyInfoSchema = new Schema<BodyInfo>(
     exerciseRate: {
       type: String,
       enum: Object.values(ExerciseRate),
-      required: true,
     },
-    bmi: { type: Number, required: true },
+    bmi: { type: Number },
   },
   { _id: false }
 );

@@ -9,7 +9,6 @@ export interface Nutrition {
   sodium: number;
   cholesterol: number;
   carbohydrates: number;
-  waterIntake: number;
 }
 
 export interface IFood extends Document {
@@ -29,7 +28,6 @@ export const nutritionSchema = new Schema<Nutrition>(
     sodium: { type: Number, required: true },
     cholesterol: { type: Number, required: true },
     carbohydrates: { type: Number, required: true },
-    waterIntake: { type: Number, required: true },
   },
   { _id: false }
 );

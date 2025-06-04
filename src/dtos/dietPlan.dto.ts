@@ -7,8 +7,9 @@ export interface MealItem {
 }
 
 export interface DailyPlan {
-  date: string;
+  date?: Date;
   meals: MealItem[];
+  percentageOfCompletions?: number; // Optional, can be calculated later
 }
 
 export interface CreateDietPlanDTO {

@@ -19,18 +19,29 @@ export const protect = catchAsync(
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
         id: string;
-      };
-
-      // Try to get user from cache first
+      }; // Try to get user from cache first
       let user = CacheService.getUser(decoded.id);
 
       // If not in cache, fetch from database and cache it
       if (!user) {
-        user = await User.findById(decoded.id).select("-hashPassword");
-        if (!user) {
+        const userFromDb = await User.findById(decoded.id)
+          .select("-hashPassword")
+          .populate({
+            path: "dietPlan",
+            populate: {
+              path: "plan.meals.foodId",
+              model: "Food",
+            },
+          })
+          .lean();
+
+        if (!userFromDb) {
           return res.status(401).json({ message: "User not found" });
         }
-        // Cache the user for future requests
+
+        // Create a properly typed user object for caching
+        user = userFromDb as IUser;
+        // Cache the user with all populated fields for future requests
         CacheService.setUser(decoded.id, user);
       }
 

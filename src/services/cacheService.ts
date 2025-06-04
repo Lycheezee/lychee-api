@@ -11,7 +11,7 @@ const userCache = new NodeCache({
 
 export class CacheService {
   // Cache user by ID
-  static setUser(userId: string, user: AuthUser): void {
+  static setUser(userId: string, user: AuthUser | IUser): void {
     userCache.set(`user:${userId}`, user);
   }
 

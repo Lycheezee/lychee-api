@@ -1,7 +1,10 @@
 import { Request, Response } from "express";
+import { UserUpdateType } from "../constants/userForm.enum";
 import { CreateUserDTO, UpdateUserDTO } from "../dtos/user.dto";
 import LycheeAIService from "../services/AI/lycheeServices";
+import { createDietPlan, updateDietPlan } from "../services/dietPlanServices";
 import * as userService from "../services/userServices";
+import { AuthUser } from "../types/user";
 import catchAsync from "../utils/catchAsync";
 
 export const registerUser = catchAsync(async (req: Request, res: Response) => {
@@ -41,35 +44,56 @@ export const getProfile = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const updateUser = catchAsync(async (req: Request, res: Response) => {
-  const userId = (req as any).user?._id;
+  const user = (req as any).user as AuthUser;
+  const userId = user?._id;
   if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
   const updateData: UpdateUserDTO = req.body;
 
-  const isFirstTimeSetup = req.query.isFirstTimeSetup === "true";
-  const isGettingMealPlan = req.query.getMealPlan === "true";
+  const type = req.query.type;
 
-  let mealPlan = null;
-
-  switch (true) {
-    case isFirstTimeSetup: {
+  switch (type) {
+    case UserUpdateType.BODY_INFO: {
       if (!updateData.bodyInfo) {
         return res
           .status(400)
           .json({ message: "Body info is required for first time setup" });
       }
-      mealPlan = (await LycheeAIService.generateMealPlan(updateData.bodyInfo))
-        .meal_plan;
-      break;
+      const mealResponse = await LycheeAIService.generateMealPlan(
+        updateData.bodyInfo
+      );
+      const dietPlan = await createDietPlan({
+        nutritionsPerDay: mealResponse.daily_targets,
+        plan: [
+          {
+            meals: mealResponse.meal_plan,
+            date: new Date(),
+          },
+        ],
+      });
+      await userService.updateUser(userId.toString(), {
+        dietPlan: dietPlan._id.toString(),
+      });
+      return res.json({ dietPlan });
     }
-    case isGettingMealPlan:
+    case UserUpdateType.MEAL_LENGTH: {
       if (!updateData.bodyInfo) {
         return res
           .status(400)
           .json({ message: "Body info is required to get meal plan" });
       }
-    mealPlan = (await LycheeAIService.generateMealPlan(updateData.bodyInfo))
-      .meal_plan;
+      const initialMealPlan = user.dietPlan?.plan?.[0]?.meals.map((meal) =>
+        meal.foodId.toString()
+      );
+      const { plan } = await LycheeAIService.getSimilarMealPlans(
+        initialMealPlan,
+        updateData.mealsPlanLength
+      );
+      const dietPlan = await updateDietPlan(user.dietPlan?._id.toString(), {
+        plan,
+      });
+      return res.json({ dietPlan });
+    }
   }
   const result = await userService.updateUser(userId.toString(), updateData);
 
