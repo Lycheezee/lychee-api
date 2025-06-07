@@ -23,6 +23,7 @@ export interface IUser {
   dietPlan?: Types.ObjectId;
   createdAt?: Date;
   updatedAt?: Date;
+  mealPlanDays?: number;
 }
 
 // Mongoose document type for internal use
@@ -60,7 +61,8 @@ const userSchema = new Schema<IUser>(
     dateOfBirth: { type: Date },
     hashPassword: { type: String, required: true },
     bodyInfo: { type: bodyInfoSchema, default: {} },
-    dietPlan: { type: Schema.Types.ObjectId, ref: "dietPlan" },
+    dietPlan: { type: Schema.Types.ObjectId, ref: "DietPlan" },
+    mealPlanDays: { type: Number, default: 7 },
   },
   { timestamps: true }
 );

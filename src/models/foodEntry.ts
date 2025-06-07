@@ -15,7 +15,7 @@ export interface INutritionData {
 export interface IFoodEntry extends Document {
   date?: Date;
   userId?: number;
-  foodItem: string;
+  name: string;
   category: string;
   nutrition: INutritionData;
   mealType: string; // Breakfast, Lunch, Dinner, Snack
@@ -40,7 +40,7 @@ const foodEntrySchema = new Schema<IFoodEntry>(
   {
     date: { type: Date, required: false },
     userId: { type: Number, required: false },
-    foodItem: { type: String, required: true },
+    name: { type: String, required: true },
     category: { type: String, required: true },
     nutrition: { type: nutritionDataSchema, required: true },
     mealType: { type: String, required: true },
@@ -50,7 +50,7 @@ const foodEntrySchema = new Schema<IFoodEntry>(
 
 // Create indexes for better query performance
 // foodEntrySchema.index({ userId: 1, date: 1 }); // Removed since these fields are now optional
-foodEntrySchema.index({ foodItem: 1 });
+foodEntrySchema.index({ name: 1 });
 foodEntrySchema.index({ category: 1 });
 foodEntrySchema.index({ mealType: 1 });
 

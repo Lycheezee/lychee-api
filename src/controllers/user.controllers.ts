@@ -77,17 +77,17 @@ export const updateUser = catchAsync(async (req: Request, res: Response) => {
       return res.json({ dietPlan });
     }
     case UserUpdateType.MEAL_LENGTH: {
-      if (!updateData.bodyInfo) {
+      if (!user.bodyInfo) {
         return res
           .status(400)
           .json({ message: "Body info is required to get meal plan" });
       }
       const initialMealPlan = user.dietPlan?.plan?.[0]?.meals.map((meal) =>
-        meal.foodId.toString()
+        (meal as any)._id.toString()
       );
       const { plan } = await LycheeAIService.getSimilarMealPlans(
         initialMealPlan,
-        updateData.mealsPlanLength
+        +updateData.mealPlanDays
       );
       const dietPlan = await updateDietPlan(user.dietPlan?._id.toString(), {
         plan,

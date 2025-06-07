@@ -26,7 +26,7 @@ interface CSVRow {
 }
 
 interface ProcessedFoodEntry {
-  foodItem: string;
+  name: string;
   category: string;
   nutrition: {
     calories: number;
@@ -72,7 +72,7 @@ class FoodDataImporter {
   }
   parseCSVRow(row: CSVRow): ProcessedFoodEntry {
     return {
-      foodItem: row.Food_Item.trim(),
+      name: row.Food_Item.trim(),
       category: row.Category.trim(),
       nutrition: {
         calories: parseFloat(row["Calories (kcal)"]),
@@ -178,7 +178,7 @@ class FoodDataImporter {
 
         const csvRow = [
           entry._id.toString(),
-          `"${originalEntry.foodItem}"`, // Quote strings that might contain commas
+          `"${originalEntry.name}"`, // Quote strings that might contain commas
           `"${originalEntry.category}"`,
           originalEntry.nutrition.calories,
           originalEntry.nutrition.protein,
@@ -226,7 +226,7 @@ class FoodDataImporter {
     });
 
     // Unique food items
-    const uniqueFoodItems = [...new Set(data.map((entry) => entry.foodItem))];
+    const uniqueFoodItems = [...new Set(data.map((entry) => entry.name))];
     console.log(`Unique food items: ${uniqueFoodItems.length}`);
 
     console.log("=".repeat(50));

@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import { ObjectId } from "mongodb";
 import { ExerciseRate, MacroPreference } from "../constants/user.enum";
+import { DailyPlan } from "../dtos/dietPlan.dto";
 import { CreateUserDTO, UpdateUserDTO } from "../dtos/user.dto";
 import User, { IUser } from "../models/user";
 import { AuthUser } from "../types/user";
@@ -80,10 +81,26 @@ export async function loginUser(
     !(await bcrypt.compare(password, userDocument.hashPassword))
   ) {
     throw new Error("Invalid credentials");
-  }
-
-  // Remove hashPassword for security and create a properly typed user object
+  } // Remove hashPassword for security and create a properly typed user object
   const { hashPassword, ...userWithoutPassword } = userDocument;
+
+  // Transform the dietPlan to have a meals field if needed
+  // After population, dietPlan becomes an object instead of ObjectId
+  if (
+    userWithoutPassword.dietPlan &&
+    typeof userWithoutPassword.dietPlan === "object" &&
+    (userWithoutPassword.dietPlan as any).plan
+  ) {
+    const dietPlan = userWithoutPassword.dietPlan as any;
+    dietPlan.plan = dietPlan.plan.map((planEntry: any) => ({
+      ...planEntry,
+      meals: planEntry.meals.map((meal: any) => ({
+        ...meal,
+        ...meal.foodId, // Spread foodId to get its fields
+        foodId: meal.foodId._id.toString(), // Convert ObjectId to string
+      })),
+    }));
+  }
 
   // Cache user information with all populated fields for faster subsequent requests
   CacheService.setUser(
@@ -146,7 +163,7 @@ export async function updateUser(
   lastName?: string;
   middleName?: string;
   bodyInfo?: any;
-  dietPlan?: string;
+  dietPlan?: DailyPlan;
 } | null> {
   const user = await User.findById(id);
   if (!user) return null;
@@ -228,7 +245,7 @@ export async function updateUser(
     lastName: updatedUser.lastName,
     middleName: updatedUser.middleName,
     bodyInfo: updatedUser.bodyInfo,
-    dietPlan: updatedUser.dietPlan?.toString(),
+    dietPlan: updatedUser.dietPlan as never as DailyPlan,
   };
 }
 
