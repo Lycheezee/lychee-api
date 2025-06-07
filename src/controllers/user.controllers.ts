@@ -2,7 +2,10 @@ import { Request, Response } from "express";
 import { UserUpdateType } from "../constants/userForm.enum";
 import { CreateUserDTO, UpdateUserDTO } from "../dtos/user.dto";
 import LycheeAIService from "../services/AI/lycheeServices";
-import { createDietPlan, updateDietPlan } from "../services/dietPlanServices";
+import {
+  createDietPlan,
+  updateDietPlan,
+} from "../services/dietPlanServices/dietPlanServices";
 import * as userService from "../services/userServices";
 import { AuthUser } from "../types/user";
 import catchAsync from "../utils/catchAsync";

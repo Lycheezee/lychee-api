@@ -1,33 +1,35 @@
 import { Document, Schema, model } from "mongoose";
 
 export interface Nutrition {
-  fats: number;
   calories: number;
+  protein: number;
+  carbohydrates: number;
+  fat: number;
+  fiber: number;
   sugars: number;
-  proteins: number;
-  fibers: number;
   sodium: number;
   cholesterol: number;
-  carbohydrates: number;
+  waterIntake: number;
 }
 
 export interface IFood extends Document {
   name: string;
   descriptions: string;
   images: string[];
-  nutritions: Nutrition;
+  nutrition: Nutrition;
 }
 
 export const nutritionSchema = new Schema<Nutrition>(
   {
-    fats: { type: Number, required: true },
     calories: { type: Number, required: true },
+    protein: { type: Number, required: true },
+    carbohydrates: { type: Number, required: true },
+    fat: { type: Number, required: true },
+    fiber: { type: Number, required: true },
     sugars: { type: Number, required: true },
-    proteins: { type: Number, required: true },
-    fibers: { type: Number, required: true },
     sodium: { type: Number, required: true },
     cholesterol: { type: Number, required: true },
-    carbohydrates: { type: Number, required: true },
+    waterIntake: { type: Number, required: true },
   },
   { _id: false }
 );
@@ -37,7 +39,7 @@ const foodSchema = new Schema<IFood>(
     name: { type: String, required: true },
     descriptions: { type: String, required: true },
     images: [{ type: String }],
-    nutritions: { type: nutritionSchema, required: true },
+    nutrition: { type: nutritionSchema, required: true },
   },
   { timestamps: true }
 );

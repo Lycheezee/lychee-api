@@ -8,6 +8,7 @@ import { AuthUser } from "../types/user";
 import { calculateBMI } from "../utils/calculateBMI";
 import { generateToken } from "../utils/generateToken";
 import CacheService from "./cacheService";
+import * as dietPlanService from "./dietPlanServices/dietPlanServices";
 
 export async function createUser(data: CreateUserDTO): Promise<IUser> {
   const user = new User(data);
@@ -65,58 +66,46 @@ export async function loginUser(
     };
   }
 > {
-  // Find user by email with populated fields
-  const userDocument = await User.findOne({ email })
-    .populate({
-      path: "dietPlan",
-      populate: {
-        path: "plan.meals.foodId",
-        model: "Food",
-      },
-    })
-    .lean();
+  const userDocument = await User.findOne({ email }).lean();
 
   if (
     !userDocument ||
     !(await bcrypt.compare(password, userDocument.hashPassword))
   ) {
     throw new Error("Invalid credentials");
-  } // Remove hashPassword for security and create a properly typed user object
-  const { hashPassword, ...userWithoutPassword } = userDocument;
-
-  // Transform the dietPlan to have a meals field if needed
-  // After population, dietPlan becomes an object instead of ObjectId
-  if (
-    userWithoutPassword.dietPlan &&
-    typeof userWithoutPassword.dietPlan === "object" &&
-    (userWithoutPassword.dietPlan as any).plan
-  ) {
-    const dietPlan = userWithoutPassword.dietPlan as any;
-    dietPlan.plan = dietPlan.plan.map((planEntry: any) => ({
-      ...planEntry,
-      meals: planEntry.meals.map((meal: any) => ({
-        ...meal,
-        ...meal.foodId, // Spread foodId to get its fields
-        foodId: meal.foodId._id.toString(), // Convert ObjectId to string
-      })),
-    }));
   }
 
-  // Cache user information with all populated fields for faster subsequent requests
+  const { hashPassword, ...userWithoutPassword } = userDocument;
+
+  let dietPlan = null;
+  if (userWithoutPassword.dietPlan) {
+    try {
+      dietPlan = await dietPlanService.getDietPlanById(
+        userWithoutPassword.dietPlan.toString()
+      );
+    } catch (error) {
+      console.error("Error fetching diet plan during login:", error);
+    }
+  }
+
+  const userWithDietPlan = {
+    ...userWithoutPassword,
+    dietPlan,
+  };
+
   CacheService.setUser(
     userWithoutPassword._id.toString(),
-    userWithoutPassword as any
+    userWithDietPlan as any
   );
 
-  // Generate access token
   const accessToken = generateToken(userWithoutPassword._id.toString());
 
   return {
     _id: userWithoutPassword._id.toString(),
-    ...userWithoutPassword,
+    ...userWithDietPlan,
     accessToken: {
       token: accessToken,
-      expiresAt: 60 * 60 * 1000, // 1 hour expiration,
+      expiresAt: 60 * 60 * 1000,
     },
   } as unknown as AuthUser & {
     accessToken: {
@@ -127,26 +116,33 @@ export async function loginUser(
 }
 
 export async function getUserProfile(userId: string): Promise<IUser | null> {
-  // Try to get user from cache first
   let user = CacheService.getUser(userId);
 
   if (!user) {
-    // If not in cache, fetch from database with all populated fields
-    user = await User.findById(userId)
-      .select("-hashPassword")
-      .populate({
-        path: "dietPlan",
-        populate: {
-          path: "plan.meals.foodId",
-          model: "Food",
-        },
-      })
-      .lean();
+    user = await User.findById(userId).select("-hashPassword").lean();
 
     if (user) {
-      // Cache the user with all populated fields for future requests
-      user = user as IUser;
-      CacheService.setUser(userId, user);
+      let dietPlan = null;
+      if (user.dietPlan) {
+        try {
+          dietPlan = await dietPlanService.getDietPlanById(
+            user.dietPlan.toString()
+          );
+        } catch (error) {
+          console.error("Error fetching diet plan for user profile:", error);
+          // Continue without diet plan if fetch fails
+        }
+      }
+
+      // Create user object with diet plan
+      const userWithDietPlan = {
+        ...user,
+        dietPlan,
+      };
+
+      // Cache the user with diet plan for future requests
+      CacheService.setUser(userId, userWithDietPlan as IUser);
+      user = userWithDietPlan as IUser;
     }
   }
 
@@ -214,28 +210,36 @@ export async function updateUser(
       );
     }
   }
-
   // Update hashed password if provided
   if ((data as any).hashPassword) {
     user.hashPassword = (data as any).hashPassword;
   }
   const updatedUser = await user.save();
 
-  // Get the updated user with all populated fields for caching
-  const userWithPopulatedFields = await User.findById(id)
+  // Get the updated user and fetch diet plan using dietPlanServices
+  const userWithoutPassword = await User.findById(id)
     .select("-hashPassword")
-    .populate({
-      path: "dietPlan",
-      populate: {
-        path: "plan.meals.foodId",
-        model: "Food",
-      },
-    })
     .lean();
 
-  // Update cache with new user data including all populated fields
-  if (userWithPopulatedFields) {
-    CacheService.setUser(id, userWithPopulatedFields as IUser);
+  let dietPlan = null;
+  if (userWithoutPassword && userWithoutPassword.dietPlan) {
+    try {
+      dietPlan = await dietPlanService.getDietPlanById(
+        userWithoutPassword.dietPlan.toString()
+      );
+    } catch (error) {
+      console.error("Error fetching diet plan during user update:", error);
+      // Continue without diet plan if fetch fails
+    }
+  }
+
+  // Create user object with diet plan for caching
+  if (userWithoutPassword) {
+    const userWithDietPlan = {
+      ...userWithoutPassword,
+      dietPlan,
+    };
+    CacheService.setUser(id, userWithDietPlan as IUser);
   }
 
   return {
@@ -245,7 +249,7 @@ export async function updateUser(
     lastName: updatedUser.lastName,
     middleName: updatedUser.middleName,
     bodyInfo: updatedUser.bodyInfo,
-    dietPlan: updatedUser.dietPlan as never as DailyPlan,
+    dietPlan: dietPlan as never as DailyPlan,
   };
 }
 

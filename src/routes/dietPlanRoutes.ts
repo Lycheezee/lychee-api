@@ -17,7 +17,9 @@ router.use(protect);
 // CRUD operations for diet plans
 router.post("/", createDietPlan);
 router.get("/", getAllDietPlans);
+
 router.get("/:id", getDietPlan);
+
 router.put("/:id", updateDietPlan);
 router.delete("/:id", deleteDietPlan);
 

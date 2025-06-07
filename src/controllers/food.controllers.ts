@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
-import * as foodService from "../services/foodServices";
-import catchAsync from "../utils/catchAsync";
 import { CreateFoodDTO } from "../dtos/food.dto";
+import * as foodService from "../services/foodServices";
 import { MulterRequest } from "../types/multer";
+import catchAsync from "../utils/catchAsync";
 import CurrentUser from "../utils/currentUser";
 
 export const createFood = catchAsync(
@@ -16,19 +16,19 @@ export const createFood = catchAsync(
     );
 
     const images = req.files?.map((file) => file.path) || [];
-
     const foodData: CreateFoodDTO = {
       ...req.body,
       images,
-      nutritions: {
-        fats: Number(req.body.nutritions?.fats),
-        calories: Number(req.body.nutritions?.calories),
-        sugars: Number(req.body.nutritions?.sugars),
-        proteins: Number(req.body.nutritions?.proteins),
-        fibers: Number(req.body.nutritions?.fibers),
-        sodium: Number(req.body.nutritions?.sodium),
-        cholesterol: Number(req.body.nutritions?.cholesterol),
-        waterIntake: Number(req.body.nutritions?.waterIntake),
+      nutrition: {
+        calories: Number(req.body.nutrition?.calories),
+        protein: Number(req.body.nutrition?.protein),
+        carbohydrates: Number(req.body.nutrition?.carbohydrates),
+        fat: Number(req.body.nutrition?.fat),
+        fiber: Number(req.body.nutrition?.fiber),
+        sugars: Number(req.body.nutrition?.sugars),
+        sodium: Number(req.body.nutrition?.sodium),
+        cholesterol: Number(req.body.nutrition?.cholesterol),
+        waterIntake: Number(req.body.nutrition?.waterIntake),
       },
     };
 

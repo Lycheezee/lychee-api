@@ -4,7 +4,7 @@ export interface CreateFoodDTO {
   name: string;
   descriptions: string;
   images?: string[];
-  nutritions: Partial<Nutrition>;
+  nutrition: Partial<Nutrition>;
 }
 
 export interface UpdateFoodDTO extends Partial<CreateFoodDTO> {}
