@@ -18,3 +18,9 @@ export interface CreateDietPlanDTO {
 }
 
 export interface UpdateDietPlanDTO extends Partial<CreateDietPlanDTO> {}
+
+export interface UpdateMealStatusDTO {
+  date: string; // Date in YYYY-MM-DD format
+  foodId: string;
+  status: EMealStatus;
+}

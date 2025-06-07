@@ -30,7 +30,7 @@ export interface MealPlanResponse {
 }
 
 export interface SimilarMealPlansResponse {
-  plan: DailyPlan[];
+  plans: DailyPlan[];
 }
 
 export class LycheeAIService {
