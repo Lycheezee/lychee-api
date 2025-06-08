@@ -20,25 +20,19 @@ export async function updateUserCachesForDietPlan(
       .select("-hashPassword")
       .lean();
 
-    // Update cache for each user
     for (const user of usersWithThisDietPlan) {
-      // Get current cached user data
       const cachedUser = CacheService.getUser(user._id.toString());
 
       if (cachedUser) {
-        // Update the cached user's diet plan with the new data
         const updatedCachedUser = {
           ...cachedUser,
           dietPlan: updatedDietPlan,
         };
-
-        // Update the cache
         CacheService.setUser(user._id.toString(), updatedCachedUser);
       }
     }
   } catch (error) {
     console.error("Error updating user caches for diet plan:", error);
-    // Don't throw error as this is a cache update - the main operation should succeed
   }
 }
 

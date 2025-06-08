@@ -13,30 +13,25 @@ export async function calculateNutritionPercentage(
   const updatedPlan: DailyPlan[] = [];
 
   for (const entry of plan) {
-    // Skip if no meals
     if (!entry.meals || entry.meals.length === 0) {
       entry.percentageOfCompletions = 0;
       updatedPlan.push(entry);
       continue;
     }
 
-    // Get all food IDs from the meals
     const foodIds = entry.meals.map(
       (meal) => (meal.foodId as any)._id ?? meal.foodId
     );
 
-    // Get all foods with nutrition information
     const foods = await Food.find({
       _id: { $in: foodIds },
     });
 
-    // Create a map of food IDs to nutrition data for easy lookup
     const foodMap = new Map();
     foods.forEach((food) => {
       foodMap.set(food._id.toString(), food.nutrition);
     });
 
-    // Calculate total nutritional values for all meals
     const totalNutrition = {
       calories: 0,
       protein: 0,
@@ -49,16 +44,13 @@ export async function calculateNutritionPercentage(
       waterIntake: 0,
     };
 
-    // Calculate nutritional values for completed meals
     const completedNutrition = { ...totalNutrition };
 
-    // Sum up nutritional values
     for (const meal of entry.meals) {
       const foodId = meal.foodId.toString();
       const nutrition = foodMap.get(foodId);
 
       if (nutrition) {
-        // Add to total nutrition
         totalNutrition.calories += nutrition.calories || 0;
         totalNutrition.protein += nutrition.protein || 0;
         totalNutrition.fat += nutrition.fat || 0;
@@ -69,7 +61,6 @@ export async function calculateNutritionPercentage(
         totalNutrition.cholesterol += nutrition.cholesterol || 0;
         totalNutrition.waterIntake += nutrition.waterIntake || 0;
 
-        // Add to completed nutrition if the meal is completed
         if (meal.status === EMealStatus.COMPLETED) {
           completedNutrition.calories += nutrition.calories || 0;
           completedNutrition.protein += nutrition.protein || 0;
@@ -84,7 +75,6 @@ export async function calculateNutritionPercentage(
       }
     }
 
-    // Calculate average percentage across all nutritional values
     let percentageSum = 0;
     let count = 0;
 
@@ -95,7 +85,6 @@ export async function calculateNutritionPercentage(
       }
     }
 
-    // Set the percentage of completion
     entry.percentageOfCompletions =
       count > 0 ? Math.round((percentageSum / count) * 100) / 100 : 0;
 

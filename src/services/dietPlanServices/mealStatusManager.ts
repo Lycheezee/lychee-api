@@ -1,9 +1,6 @@
-import { ObjectId } from "mongodb";
-import { DailyPlan, UpdateMealStatusDTO } from "../../dtos/dietPlan.dto";
-import DietPlanModel from "../../models/dietPlan";
+import { UpdateMealStatusDTO } from "../../dtos/dietPlan.dto";
 import { DietPlan } from "../../types/user";
-import { updateUserCachesForDietPlan } from "./dietPlanCacheManager";
-import { calculateNutritionPercentage } from "./nutritionCalculator";
+import { getDietPlanById, updateDietPlan } from "./dietPlanOperations";
 
 /**
  * Updates the status of a specific meal in a diet plan
@@ -17,18 +14,10 @@ export async function updateMealStatus(
 ): Promise<DietPlan | null> {
   const { date, foodId, status } = updateData;
 
-  // Convert date string to Date object for comparison
   const targetDate = new Date(date);
   targetDate.setHours(0, 0, 0, 0);
 
-  // Find the diet plan
-  const dietPlan = await DietPlanModel.findById(dietPlanId);
-
-  if (!dietPlan) {
-    return null;
-  }
-
-  // Find the specific day and meal to update
+  const dietPlan = await getDietPlanById(dietPlanId);
   let mealFound = false;
 
   for (const dayPlan of dietPlan.plan) {
@@ -36,9 +25,8 @@ export async function updateMealStatus(
     dayDate.setHours(0, 0, 0, 0);
 
     if (dayDate.getTime() === targetDate.getTime()) {
-      // Find the meal with the matching foodId
       for (const meal of dayPlan.meals) {
-        if (meal.foodId.toString() === foodId) {
+        if (meal.foodId.toString() === foodId && meal.status !== status) {
           meal.status = status;
           mealFound = true;
           break;
@@ -52,44 +40,9 @@ export async function updateMealStatus(
     throw new Error(`Meal with foodId ${foodId} not found for date ${date}`);
   }
 
-  // Convert to business plan format for percentage recalculation
-  const businessPlan: DailyPlan[] = dietPlan.plan.map((entry: any) => ({
-    date: entry.date,
-    meals: entry.meals.map((meal: any) => ({
-      foodId: meal.foodId._id
-        ? meal.foodId._id.toString()
-        : meal.foodId.toString(),
-      status: meal.status,
-    })),
-    percentageOfCompletions: entry.percentageOfCompletions,
-  }));
+  const updatedPlan = await updateDietPlan(dietPlanId, {
+    plan: dietPlan.plan,
+  });
 
-  // Recalculate percentages
-  const updatedPlan = await calculateNutritionPercentage(businessPlan);
-
-  // Convert back to schema format and save
-  const schemaFormattedPlan = updatedPlan.map((entry) => ({
-    ...entry,
-    meals: entry.meals.map((meal) => ({
-      ...meal,
-      foodId: new ObjectId(meal.foodId),
-    })),
-  }));
-
-  dietPlan.plan = schemaFormattedPlan as any;
-  await dietPlan.save();
-
-  // Create business type result
-  const businessResult = {
-    _id: dietPlan._id.toString(),
-    nutritionsPerDay: dietPlan.nutritionsPerDay,
-    plan: updatedPlan,
-    createdAt: dietPlan.createdAt,
-    updatedAt: dietPlan.updatedAt,
-  };
-
-  // Update user caches for users who have this diet plan
-  await updateUserCachesForDietPlan(dietPlanId, businessResult);
-
-  return businessResult;
+  return updatedPlan;
 }

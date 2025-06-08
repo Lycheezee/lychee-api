@@ -27,7 +27,7 @@ export const getAllDietPlans = catchAsync(
 );
 
 export const getDietPlan = catchAsync(async (req: Request, res: Response) => {
-  const dietPlan = await dietPlanService.getDietPlanByIdWithMeals(req.params.id);
+  const dietPlan = await dietPlanService.getDietPlanById(req.params.id);
   if (!dietPlan) {
     return res.status(404).json({ message: "Diet plan not found" });
   }

@@ -95,35 +95,19 @@ export async function getDietPlanById(id: string): Promise<DietPlan | null> {
     model: "Food",
   });
 
-  if (!dietPlan) {
-    return null;
-  }
+  if (!dietPlan) return null;
 
-  // Convert schema plan to business plan for calculations
   const businessPlan: DailyPlan[] = dietPlan.plan.map((entry: any) => ({
     date: entry.date,
     meals: entry.meals.map((meal: any) => ({
+      ...meal.foodId.toObject(),
       foodId: meal.foodId._id.toString(),
       status: meal.status,
     })),
     percentageOfCompletions: entry.percentageOfCompletions,
   }));
 
-  // Recalculate percentages
   const updatedPlan = await calculateNutritionPercentage(businessPlan);
-
-  // Convert back to schema format and save
-  const schemaFormattedPlan = updatedPlan.map((entry) => ({
-    ...entry,
-    meals: entry.meals.map((meal) => ({
-      ...meal,
-      foodId: (meal.foodId as any)._id ?? meal.foodId,
-    })),
-  }));
-  dietPlan.plan = schemaFormattedPlan as any;
-  // await dietPlan.save();
-
-  // Create business type result
   const businessResult = {
     _id: dietPlan._id.toString(),
     nutritionsPerDay: dietPlan.nutritionsPerDay,
@@ -132,52 +116,8 @@ export async function getDietPlanById(id: string): Promise<DietPlan | null> {
     updatedAt: dietPlan.updatedAt,
   };
 
-  // Update user caches for users who have this diet plan
   await updateUserCachesForDietPlan(id, businessResult);
 
-  // Return business type
-  return businessResult;
-}
-
-export async function getDietPlanByIdWithMeals(
-  id: string
-): Promise<DietPlan | null> {
-  const dietPlan = await DietPlanModel.findById(id).populate({
-    path: "plan.meals.foodId",
-    model: "Food",
-  }).lean();
-
-  if (!dietPlan) {
-    return null;
-  }
-
-  // Convert schema plan to business plan for calculations
-  const businessPlan: DailyPlan[] = dietPlan.plan.map((entry: any) => ({
-    date: entry.date,
-    meals: entry.meals.map((meal: any) => ({
-      ...meal.foodId,
-      foodId: meal.foodId._id.toString(),
-      status: meal.status,
-    })),
-    percentageOfCompletions: entry.percentageOfCompletions,
-  }));
-
-  // Recalculate percentages
-  const updatedPlan = await calculateNutritionPercentage(businessPlan);
-
-  // Create business type result
-  const businessResult = {
-    _id: dietPlan._id.toString(),
-    nutritionsPerDay: dietPlan.nutritionsPerDay,
-    plan: updatedPlan,
-    createdAt: dietPlan.createdAt,
-    updatedAt: dietPlan.updatedAt,
-  };
-
-  // Update user caches for users who have this diet plan
-  await updateUserCachesForDietPlan(id, businessResult);
-
-  // Return business type
   return businessResult;
 }
 
@@ -188,12 +128,9 @@ export async function updateDietPlan(
   id: string,
   data: UpdateDietPlanDTO
 ): Promise<DietPlan | null> {
-  // If plan is being updated, recalculate percentages
   let enrichedPlan: DailyPlan[] | undefined;
   if (data.plan) {
     enrichedPlan = await calculateNutritionPercentage(data.plan);
-
-    // Convert to schema format for database update
     const schemaFormattedPlan = enrichedPlan.map((entry) => ({
       ...entry,
       meals: entry.meals.map((meal) => ({
@@ -205,61 +142,13 @@ export async function updateDietPlan(
     data = { ...data, plan: schemaFormattedPlan as any };
   }
 
-  const updatedPlan = await DietPlanModel.findByIdAndUpdate(id, data, {
+  await DietPlanModel.findByIdAndUpdate(id, data, {
     new: true,
   });
 
-  if (!updatedPlan) {
-    return null;
-  }
-
-  // Get the full plan with populated food data
-  const populatedPlan = await DietPlanModel.findById(id).populate({
-    path: "plan.meals.foodId",
-    model: "Food",
-  });
-
-  if (!populatedPlan) {
-    return null;
-  }
-
-  // Convert to business plan and recalculate percentages
-  const businessPlan: DailyPlan[] = populatedPlan.plan.map((entry: any) => ({
-    date: entry.date,
-    meals: entry.meals.map((meal: any) => ({
-      foodId: meal.foodId._id.toString(),
-      status: meal.status,
-    })),
-    percentageOfCompletions: entry.percentageOfCompletions,
-  }));
-
-  const finalUpdatedPlan = await calculateNutritionPercentage(businessPlan);
-
-  // Save the updated percentages back to database
-  const schemaFormattedPlan = finalUpdatedPlan.map((entry) => ({
-    ...entry,
-    meals: entry.meals.map((meal) => ({
-      ...meal,
-      foodId: new ObjectId(meal.foodId),
-    })),
-  }));
-  populatedPlan.plan = schemaFormattedPlan as any;
-  await populatedPlan.save();
-
-  // Create business type result
-  const businessResult = {
-    _id: populatedPlan._id.toString(),
-    nutritionsPerDay: populatedPlan.nutritionsPerDay,
-    plan: finalUpdatedPlan,
-    createdAt: populatedPlan.createdAt,
-    updatedAt: populatedPlan.updatedAt,
-  };
-
-  // Update user caches for users who have this diet plan
-  await updateUserCachesForDietPlan(id, businessResult);
-
-  // Return business type
-  return businessResult;
+  const newUpdatedPlan = await getDietPlanById(id);
+  await updateUserCachesForDietPlan(id, newUpdatedPlan);
+  return newUpdatedPlan;
 }
 
 /**

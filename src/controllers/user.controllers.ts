@@ -66,7 +66,13 @@ export const updateUser = catchAsync(async (req: Request, res: Response) => {
         updateData.bodyInfo
       );
       const dietPlan = await createDietPlan({
-        nutritionsPerDay: mealResponse.daily_targets,
+        nutritionsPerDay: {
+          ...mealResponse.daily_targets,
+          fat: mealResponse.daily_targets.fats,
+          fiber: mealResponse.daily_targets.fibers,
+          protein: mealResponse.daily_targets.proteins,
+          waterIntake: mealResponse.daily_targets.water ?? 0,
+        },
         plan: [
           {
             meals: mealResponse.meal_plan,
@@ -86,7 +92,7 @@ export const updateUser = catchAsync(async (req: Request, res: Response) => {
           .json({ message: "Body info is required to get meal plan" });
       }
       const initialMealPlan = user.dietPlan?.plan?.[0]?.meals.map((meal) =>
-        (meal as any).foodId._id.toString()
+        (meal as any).foodId.toString()
       );
       const { plans } = await LycheeAIService.getSimilarMealPlans(
         initialMealPlan,
