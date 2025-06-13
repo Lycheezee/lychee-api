@@ -4,9 +4,12 @@ import {
   ExerciseRate,
   MacroPreference,
 } from "../../constants/user.enum";
-import { DailyPlan } from "../../dtos/dietPlan.dto";
+import { CreateDietPlanDTO, DailyPlan } from "../../dtos/dietPlan.dto";
 import { IUser } from "../../models/user";
+import { AuthUser } from "../../types/user";
 import CurrentUser from "../../utils/currentUser";
+import logger from "../../utils/logger";
+import * as dietPlanService from "../dietPlanServices/dietPlanServices";
 
 dotenv.config();
 
@@ -19,14 +22,9 @@ export interface MealRequest {
   macro_preference: string;
 }
 
-export interface DurationRequest {
-  days: number;
-  initialMeal: string[];
-}
-
 export interface MealPlanResponse {
-  // Define the structure based on what your API returns
-  [key: string]: any;
+  meal_plan?: any[];
+  daily_targets?: any;
 }
 
 export interface SimilarMealPlansResponse {
@@ -58,40 +56,7 @@ export class LycheeAIService {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(mealRequest),
-      });
 
-      if (!response.ok) {
-        throw new Error(
-          `AI API request failed: ${response.status} ${response.statusText}`
-        );
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error("Error calling meal plan API:", error);
-      throw new Error("Failed to generate meal plan. Please try again later.");
-    }
-  }
-
-  /**
-   * Generate a meal plan for a specific user
-   * @param user User data
-   * @param overrides Optional overrides for user data
-   * @returns Meal plan from AI service
-   */
-  static async generateMealPlanForUser(
-    user: IUser,
-    overrides?: Partial<MealRequest>
-  ): Promise<MealPlanResponse> {
-    const mealRequest = this.buildMealRequest(user, overrides);
-
-    try {
-      const response = await fetch(`${this.AI_LYCHEE_API_URL}/api/meal-plan`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify(mealRequest),
       });
 
@@ -158,12 +123,12 @@ export class LycheeAIService {
 
     const defaultMacroPreference =
       user.bodyInfo?.macro_preference ||
-      overrides.macro_preference ||
+      overrides?.macro_preference ||
       MacroPreference.BALANCED;
 
     const defaultExerciseRate =
       user.bodyInfo?.exerciseRate ||
-      overrides.exercise_rate ||
+      overrides?.exercise_rate ||
       ExerciseRate.Sedentary;
 
     const mealRequest: MealRequest = {
@@ -193,92 +158,68 @@ export class LycheeAIService {
     }
     return date.toISOString().split("T")[0];
   }
-  /**
-   * Validate meal request data
-   * @param request Meal request object
-   * @returns True if valid, throws error if invalid
-   */
-  static validateMealRequest(request: MealRequest): boolean {
-    if (!request.height || request.height <= 0) {
-      throw new Error("Valid height is required");
-    }
-
-    if (!request.weight || request.weight <= 0) {
-      throw new Error("Valid weight is required");
-    }
-
-    if (
-      !request.gender ||
-      !["male", "female", "other", "prefer_not_to_say"].includes(request.gender)
-    ) {
-      throw new Error("Valid gender is required");
-    }
-
-    if (
-      !request.exercise_rate ||
-      !["sedentary", "light", "moderate", "active", "very_active"].includes(
-        request.exercise_rate
-      )
-    ) {
-      throw new Error("Valid exercise rate is required");
-    }
-
-    if (!request.dob || !/^\d{4}-\d{2}-\d{2}$/.test(request.dob)) {
-      throw new Error("Date of birth must be in YYYY-MM-DD format");
-    }
-
-    if (
-      !request.macro_preference ||
-      ![
-        "balanced",
-        "high_protein",
-        "low_carb",
-        "high_carb",
-        "ketogenic",
-      ].includes(request.macro_preference)
-    ) {
-      throw new Error("Valid macro preference is required");
-    }
-
-    return true;
-  }
 
   /**
-   * Get similar meal plans for a specified duration
+   * Generate and save meal plans for a specified duration
    * @param days Number of days to generate meal plans for
-   * @returns Object containing multiple meal plans
+   * @param userOverrides Optional overrides for user data
+   * @param nutritionsPerDay Default nutritional values per day
    */
   static async getSimilarMealPlans(
-    initialMeal: string[],
-    days: number
-  ): Promise<SimilarMealPlansResponse> {
+    days: number,
+    user: AuthUser
+  ): Promise<void> {
     if (!days || days <= 0 || days > 30) {
       throw new Error("Days must be a positive number between 1 and 30");
     }
 
-    const durationRequest: DurationRequest = { days, initialMeal };
-
     try {
-      const response = await fetch(
-        `${this.AI_LYCHEE_API_URL}/api/similar-meal-plan`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(durationRequest),
-        }
-      );
+      const startDate = new Date();
 
-      if (!response.ok) {
-        throw new Error(
-          `AI API request failed: ${response.status} ${response.statusText}`
+      // Generate meal plan for each day
+      for (let i = 1; i < days; i++) {
+        const currentDate = new Date(startDate);
+        currentDate.setDate(startDate.getDate() + i);
+
+        console.log(
+          `Generating meal plan for day ${i + 1} (${
+            currentDate.toISOString().split("T")[0]
+          })`
         );
+
+        const mealPlan = await this.generateMealPlan();
+
+        // Create daily plan with the current date
+        const dailyPlan: DailyPlan = {
+          date: currentDate,
+          meals: mealPlan.meal_plan || [],
+          percentageOfCompletions: 0,
+        };
+
+        const dietPlanData: CreateDietPlanDTO = {
+          nutritionsPerDay: user.dietPlan.nutritionsPerDay,
+          plan: [dailyPlan],
+        };
+
+        const savedPlan = await dietPlanService.updateDietPlan(
+          user.dietPlan._id,
+          dietPlanData
+        );
+
+        logger.info(
+          `Saved meal plan for ${
+            currentDate.toISOString().split("T")[0]
+          } with ID: ${savedPlan._id}`
+        );
+
+        if (i < days - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 50));
+        }
       }
 
-      return await response.json();
+      logger.info(`Successfully generated and saved ${days} meal plans`);
     } catch (error) {
-      console.error("Error calling similar meal plan API:", error);
+      logger.error("Error generating similar meal plans:", error);
       throw new Error(
         "Failed to generate similar meal plans. Please try again later."
       );

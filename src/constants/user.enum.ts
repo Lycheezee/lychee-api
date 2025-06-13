@@ -3,7 +3,7 @@ export enum ExerciseRate {
   Light = "light",
   Moderate = "moderate",
   Active = "active",
-  VeryActive = "very active",
+  VeryActive = "very_active",
 }
 
 export enum MacroPreference {

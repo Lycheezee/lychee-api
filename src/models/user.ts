@@ -2,7 +2,7 @@ import { ObjectId } from "mongodb";
 import { Document, Schema, Types, model } from "mongoose";
 import { EGender, ExerciseRate, MacroPreference } from "../constants/user.enum";
 
-interface BodyInfo {
+export interface BodyInfo {
   weight: number;
   height: number;
   exerciseRate: ExerciseRate;

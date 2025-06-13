@@ -9,16 +9,12 @@ export interface INutritionData {
   sugars: number; // g
   sodium: number; // mg
   cholesterol: number; // mg
-  waterIntake: number; // ml
 }
 
 export interface IFoodEntry extends Document {
   date?: Date;
-  userId?: number;
   name: string;
-  category: string;
   nutrition: INutritionData;
-  mealType: string; // Breakfast, Lunch, Dinner, Snack
 }
 
 const nutritionDataSchema = new Schema<INutritionData>(
@@ -31,7 +27,6 @@ const nutritionDataSchema = new Schema<INutritionData>(
     sugars: { type: Number, required: true },
     sodium: { type: Number, required: true },
     cholesterol: { type: Number, required: true },
-    waterIntake: { type: Number, required: true },
   },
   { _id: false }
 );
@@ -39,11 +34,8 @@ const nutritionDataSchema = new Schema<INutritionData>(
 const foodEntrySchema = new Schema<IFoodEntry>(
   {
     date: { type: Date, required: false },
-    userId: { type: Number, required: false },
     name: { type: String, required: true },
-    category: { type: String, required: true },
     nutrition: { type: nutritionDataSchema, required: true },
-    mealType: { type: String, required: true },
   },
   { timestamps: true }
 );

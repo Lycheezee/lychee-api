@@ -1,5 +1,8 @@
-import { OpenAI } from "openai";
+import { GoogleGenAI } from "@google/genai";
+import { IFood } from "../../models/food";
+import { IUser } from "../../models/user";
 import logger from "../../utils/logger";
+import { AI_PROMPT } from "../constants/aiPrompt";
 
 // Define response types for better type safety
 export interface GemmaResponse<T> {
@@ -58,73 +61,38 @@ export interface FoodSubstitutionResponse {
 }
 
 export class OpenAIService {
-  private client: OpenAI;
+  private client: GoogleGenAI;
+
+  private foodList: IFood[] = [];
+  private dateLast: number = 7; // Default to 7 days
+  private systemPrompt: string = "";
+
   private static instance: OpenAIService;
 
-  private constructor() {
+  public constructor(user: IUser, foodList: IFood[], dateLast?: number) {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
       throw new Error("OpenAI API key is required");
     }
 
-    this.client = new OpenAI({
+    this.client = new GoogleGenAI({
       apiKey: apiKey,
     });
+    this.dateLast = dateLast;
+    this.foodList = foodList;
+    this.systemPrompt = AI_PROMPT(foodList, dateLast, user.bodyInfo);
   }
 
-  public static getInstance(): OpenAIService {
-    if (!OpenAIService.instance) {
-      OpenAIService.instance = new OpenAIService();
-    }
-    return OpenAIService.instance;
-  }
-
-  /**
-   * Generate a response using Gemma model with type safety
-   * @param prompt The prompt to send to the model
-   * @param systemPrompt Optional system prompt to guide the model
-   * @returns Typed response from the Gemma model
-   */
-  public async getGemmaResponse<T>(
-    prompt: string,
-    systemPrompt?: string
-  ): Promise<GemmaResponse<T>> {
+  public async getGemmaResponse(): Promise<string> {
     try {
-      const messages: Array<OpenAI.Chat.ChatCompletionMessageParam> = [];
-
-      if (systemPrompt) {
-        messages.push({
-          role: "system",
-          content: systemPrompt,
-        });
-      }
-
-      messages.push({
-        role: "user",
-        content: prompt,
-      });
-
-      const response = await this.client.chat.completions.create({
+      const res = await this.client.models.generateContent({
         model: "gemma-3-27b-it",
-        messages: messages,
-        response_format: { type: "json_object" },
-        temperature: 0.7,
+        contents: this.systemPrompt,
       });
 
-      // Parse the content to the expected type
-      const content = JSON.parse(
-        response.choices[0].message.content || "{}"
-      ) as T;
+      const result = res.text;
 
-      return {
-        model: response.model,
-        content,
-        usage: {
-          prompt_tokens: response.usage?.prompt_tokens || 0,
-          completion_tokens: response.usage?.completion_tokens || 0,
-          total_tokens: response.usage?.total_tokens || 0,
-        },
-      };
+      return result;
     } catch (error) {
       logger.error("Error calling Gemma model:", error);
       throw new Error(
@@ -133,125 +101,21 @@ export class OpenAIService {
     }
   }
 
-  /**
-   * Generate a response using Flash model with type safety
-   * @param prompt The prompt to send to the model
-   * @param systemPrompt Optional system prompt to guide the model
-   * @returns Typed response from the Flash model
-   */
-  public async getFlashResponse<T>(
-    prompt: string,
-    systemPrompt?: string
-  ): Promise<FlashResponse<T>> {
+  public async getFlashResponse(): Promise<string> {
     try {
-      const messages: Array<OpenAI.Chat.ChatCompletionMessageParam> = [];
-
-      if (systemPrompt) {
-        messages.push({
-          role: "system",
-          content: systemPrompt,
-        });
-      }
-
-      messages.push({
-        role: "user",
-        content: prompt,
+      const res = await this.client.models.generateContent({
+        model: "gemini-2.0-flash-001",
+        contents: this.systemPrompt,
       });
 
-      const response = await this.client.chat.completions.create({
-        model: "gemini-2.0-flash-001", // Using GPT-4o Flash as a stand-in for Flash
-        messages: messages,
-        response_format: { type: "json_object" }, // Ensure response is JSON for parsing
-        temperature: 0.3, // Lower temperature for more deterministic outputs
-      });
-
-      // Parse the content to the expected type
-      const content = JSON.parse(
-        response.choices[0].message.content || "{}"
-      ) as T;
-
-      return {
-        model: response.model,
-        content,
-        usage: {
-          prompt_tokens: response.usage?.prompt_tokens || 0,
-          completion_tokens: response.usage?.completion_tokens || 0,
-          total_tokens: response.usage?.total_tokens || 0,
-        },
-      };
+      const result = res.text;
+      return result;
     } catch (error) {
       logger.error("Error calling Flash model:", error);
       throw new Error(
         "Failed to generate response from Flash model. Please try again later."
       );
     }
-  }
-
-  /**
-   * Generate diet suggestions based on user preferences
-   * @param userPreferences User dietary preferences and restrictions
-   * @returns Diet suggestions with nutrition information
-   */
-  public async generateDietSuggestions(userPreferences: {
-    height: number;
-    weight: number;
-    gender: string;
-    exerciseRate: string;
-    macroPreference: string;
-    allergies?: string[];
-    dietaryRestrictions?: string[];
-  }): Promise<GemmaResponse<DietSuggestionResponse>> {
-    const systemPrompt = `You are a nutrition expert assistant. 
-    Generate a structured meal plan with nutritional information. 
-    Provide a JSON response with meal suggestions organized by meal type 
-    and including nutritional breakdown.`;
-
-    const prompt = `
-    Create a meal plan for a person with the following characteristics:
-    - Height: ${userPreferences.height} cm
-    - Weight: ${userPreferences.weight} kg
-    - Gender: ${userPreferences.gender}
-    - Exercise Rate: ${userPreferences.exerciseRate}
-    - Macro Preference: ${userPreferences.macroPreference}
-    
-    The response should be a valid JSON object with the structure matching DietSuggestionResponse type.
-    `;
-
-    return await this.getGemmaResponse<DietSuggestionResponse>(
-      prompt,
-      systemPrompt
-    );
-  }
-
-  /**
-   * Generate food substitution recommendations
-   * @param food Food to find substitutes for
-   * @param restrictions Any dietary restrictions to consider
-   * @returns List of substitution options with nutritional comparison
-   */
-  public async generateFoodSubstitutions(
-    food: string,
-    restrictions?: string[]
-  ): Promise<FlashResponse<FoodSubstitutionResponse>> {
-    const systemPrompt = `You are a nutrition expert assistant. 
-    Provide suitable food substitutions with detailed nutritional comparison.
-    Structure your response as a JSON object.`;
-
-    const prompt = `
-    Find nutritionally similar substitutes for ${food}.
-    ${
-      restrictions
-        ? `Consider these dietary restrictions: ${restrictions.join(", ")}`
-        : ""
-    }
-    
-    The response should be a valid JSON object with the structure matching FoodSubstitutionResponse type.
-    `;
-
-    return await this.getFlashResponse<FoodSubstitutionResponse>(
-      prompt,
-      systemPrompt
-    );
   }
 }
 

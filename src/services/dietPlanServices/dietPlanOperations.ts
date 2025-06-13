@@ -129,8 +129,37 @@ export async function updateDietPlan(
   data: UpdateDietPlanDTO
 ): Promise<DietPlan | null> {
   let enrichedPlan: DailyPlan[] | undefined;
+  const existingPlan = await getDietPlanById(id);
+
+  if (!existingPlan) {
+    return null;
+  }
+
   if (data.plan) {
-    enrichedPlan = await calculateNutritionPercentage(data.plan);
+    const mergedPlan: DailyPlan[] = [...existingPlan.plan];
+
+    for (const newDayPlan of data.plan) {
+      const newDate = new Date(newDayPlan.date!);
+      newDate.setHours(0, 0, 0, 0);
+
+      const existingIndex = mergedPlan.findIndex((existingDayPlan) => {
+        const existingDate = new Date(existingDayPlan.date!);
+        existingDate.setHours(0, 0, 0, 0);
+        return existingDate.getTime() === newDate.getTime();
+      });
+
+      if (existingIndex !== -1) {
+        mergedPlan[existingIndex] = newDayPlan;
+      } else {
+        mergedPlan.push(newDayPlan);
+      }
+    }
+
+    mergedPlan.sort(
+      (a, b) => new Date(a.date!).getTime() - new Date(b.date!).getTime()
+    );
+
+    enrichedPlan = await calculateNutritionPercentage(mergedPlan);
     const schemaFormattedPlan = enrichedPlan.map((entry) => ({
       ...entry,
       meals: entry.meals.map((meal) => ({
@@ -181,4 +210,22 @@ export async function deleteDietPlan(id: string): Promise<DietPlan | null> {
     createdAt: deletedPlan.createdAt,
     updatedAt: deletedPlan.updatedAt,
   };
+}
+
+export async function getRemainingDietPlans(planId: string): Promise<number> {
+  const dietPlans = await DietPlanModel.findById(planId)
+    .populate({
+      path: "plan.meals.foodId",
+      model: "Food",
+    })
+    .lean();
+  if (!dietPlans) {
+    return 0;
+  }
+  const today = new Date();
+  const remainingPlans = dietPlans.plan.filter((plan) => {
+    const planDate = new Date(plan.date);
+    return planDate.getTime() > today.getTime();
+  });
+  return remainingPlans.length;
 }
