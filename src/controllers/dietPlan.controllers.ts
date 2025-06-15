@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import DietPlanModel from "../models/dietPlan";
 import { EAiModel } from "../constants/model.enum";
 import {
   CreateDietPlanDTO,
@@ -56,26 +57,44 @@ export const updateDietPlanWithAI = catchAsync(
     const user = (req as any).user as IUser;
 
     const foodList = await food.find().lean();
-    const dateLast = await getRemainingDietPlans(user.dietPlan._id.toString());
+    const dateLast = await getRemainingDietPlans(
+      user.dietPlan._id.toString(),
+      user.mealPlanDays
+    );
     const OpenAIServiceInstance = new OpenAIService(user, foodList, dateLast);
 
     let updateDietPlan = {};
     switch (model) {
       case EAiModel.GEMMA:
-        updateDietPlan = OpenAIServiceInstance.getGemmaResponse();
+        updateDietPlan = await OpenAIServiceInstance.getGemmaResponse();
         break;
       case EAiModel.GEMINI:
-        updateDietPlan = OpenAIServiceInstance.getFlashResponse();
+        updateDietPlan = await OpenAIServiceInstance.getFlashResponse();
         break;
+      case EAiModel.LYCHEE:
+        const dietPlan = await DietPlanModel.findByIdAndUpdate(
+          user.dietPlan._id.toString(),
+          { type: model },
+          { new: true }
+        );
+        return res.json(dietPlan);
       default:
         return res.status(400).json({ message: "Invalid AI model specified" });
     }
 
-    // const dietPlan = await dietPlanService.updateDietPlan(req.params.id, data);
-    if (!updateDietPlan) {
+    const aiPlan = {
+      model: model,
+      plan: updateDietPlan as any,
+    };
+
+    const dietPlan = await dietPlanService.updateDietPlan(req.params.id, {
+      type: model,
+      aiPlan,
+    });
+    if (!dietPlan) {
       return res.status(404).json({ message: "Diet plan not found" });
     }
-    res.json(updateDietPlan);
+    res.json(dietPlan);
   }
 );
 

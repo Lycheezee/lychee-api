@@ -20,7 +20,7 @@ router.get("/", getAllDietPlans);
 router.get("/:id", getDietPlan);
 
 router.put("/:id", updateDietPlan);
-router.put("/regen-with-ai/:id", updateDietPlanWithAI);
+router.post("/regen-with-ai/:id", updateDietPlanWithAI);
 
 router.delete("/:id", deleteDietPlan);
 

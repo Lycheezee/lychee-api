@@ -1,3 +1,4 @@
+import { EAiModel } from "../constants/model.enum";
 import { DailyPlan } from "../dtos/dietPlan.dto";
 import { Nutrition } from "../models/food";
 import { IUser } from "../models/user";
@@ -6,6 +7,10 @@ import { IUser } from "../models/user";
 export interface DietPlan {
   _id?: string;
   nutritionsPerDay: Nutrition;
+  aiPlan?: {
+    model: EAiModel;
+    plan: DailyPlan[];
+  }
   plan: DailyPlan[];
   createdAt?: Date;
   updatedAt?: Date;

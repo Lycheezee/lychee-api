@@ -124,14 +124,9 @@ export async function getUserProfile(userId: string): Promise<IUser | null> {
     if (user) {
       let dietPlan = null;
       if (user.dietPlan) {
-        try {
-          dietPlan = await dietPlanService.getDietPlanById(
-            user.dietPlan.toString()
-          );
-        } catch (error) {
-          console.error("Error fetching diet plan for user profile:", error);
-          // Continue without diet plan if fetch fails
-        }
+        dietPlan = await dietPlanService.getDietPlanById(
+          user.dietPlan.toString()
+        );
       }
 
       // Create user object with diet plan

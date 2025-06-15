@@ -1,23 +1,26 @@
 import { Document, Schema, Types, model } from "mongoose";
 import { EMealStatus } from "../constants/meal.enum";
+import { EAiModel } from "../constants/model.enum";
 import { Nutrition, nutritionSchema } from "./food";
 
-// Schema-level interface for Mongoose (using ObjectId)
 interface MealTargetSchema {
   foodId: Types.ObjectId;
   status: EMealStatus;
 }
 
-// Schema-level interface for plan entries (using ObjectId)
 interface PlanEntrySchema {
   date?: Date;
   meals: MealTargetSchema[];
   percentageOfCompletions: number;
 }
 
-// Schema-level interface for diet plan document (for Mongoose only)
 export interface IDietPlan extends Document {
   nutritionsPerDay: Nutrition;
+  type: EAiModel;
+  aiPlan: {
+    model: EAiModel;
+    plan: PlanEntrySchema[];
+  };
   plan: PlanEntrySchema[];
   createdAt?: Date;
   updatedAt?: Date;
@@ -42,6 +45,16 @@ const dietPlanSchema = new Schema<IDietPlan>(
   {
     nutritionsPerDay: nutritionSchema,
     plan: [PlanEntrySchema],
+    type: {
+      type: String,
+      enum: Object.values(EAiModel),
+      required: true,
+      default: EAiModel.LYCHEE,
+    },
+    aiPlan: {
+      model: { type: String, enum: Object.values(EAiModel) },
+      plan: [PlanEntrySchema],
+    },
   },
   { timestamps: true }
 );

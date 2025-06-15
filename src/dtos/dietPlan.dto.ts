@@ -1,4 +1,5 @@
 import { EMealStatus } from "../constants/meal.enum";
+import { EAiModel } from "../constants/model.enum";
 import { Nutrition } from "../models/food";
 
 export interface MealItem {
@@ -15,6 +16,11 @@ export interface DailyPlan {
 export interface CreateDietPlanDTO {
   nutritionsPerDay: Partial<Nutrition>;
   plan: DailyPlan[];
+  type?: EAiModel;
+  aiPlan?: {
+    model: EAiModel;
+    plan: DailyPlan[];
+  };
 }
 
 export interface UpdateDietPlanDTO extends Partial<CreateDietPlanDTO> {}
