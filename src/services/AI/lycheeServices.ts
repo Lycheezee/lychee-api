@@ -126,7 +126,7 @@ export class LycheeAIService {
 
     const defaultExerciseRate =
       user.bodyInfo?.exerciseRate ||
-      overrides?.exercise_rate ||
+      (overrides as any)?.exerciseRate ||
       ExerciseRate.Sedentary;
 
     const mealRequest: MealRequest = {

@@ -89,11 +89,10 @@ export const updateUser = catchAsync(async (req: Request, res: Response) => {
           .status(400)
           .json({ message: "Body info is required to get meal plan" });
       }
-
-      await LycheeAIService.getSimilarMealPlans(
-        +updateData.mealPlanDays,
-        user
-      );
+      await userService.updateUser(userId.toString(), {
+        mealPlanDays: +updateData.mealPlanDays,
+      });
+      await LycheeAIService.getSimilarMealPlans(+updateData.mealPlanDays, user);
 
       return res.status(200);
     }
