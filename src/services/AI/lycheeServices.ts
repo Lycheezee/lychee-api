@@ -117,8 +117,6 @@ export class LycheeAIService {
     const genderMapping: Record<EGender, string> = {
       [EGender.MALE]: "male",
       [EGender.FEMALE]: "female",
-      [EGender.OTHER]: "other",
-      [EGender.PREFER_NOT_TO_SAY]: "prefer_not_to_say",
     };
 
     const defaultMacroPreference =
@@ -134,7 +132,7 @@ export class LycheeAIService {
     const mealRequest: MealRequest = {
       height: user.bodyInfo?.height,
       weight: user.bodyInfo?.weight,
-      gender: genderMapping[user.gender as EGender] || EGender.OTHER,
+      gender: genderMapping[user.gender as EGender] || EGender.MALE,
       dob: this.formatDateOfBirth(user.dateOfBirth),
       ...overrides,
       // below include overrides

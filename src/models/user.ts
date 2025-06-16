@@ -56,7 +56,7 @@ const userSchema = new Schema<IUser>(
     gender: {
       type: String,
       enum: Object.values(EGender),
-      default: EGender.PREFER_NOT_TO_SAY,
+      default: EGender.MALE,
     },
     dateOfBirth: { type: Date },
     hashPassword: { type: String, required: true },
