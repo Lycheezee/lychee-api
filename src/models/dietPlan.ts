@@ -17,10 +17,11 @@ interface PlanEntrySchema {
 export interface IDietPlan extends Document {
   nutritionsPerDay: Nutrition;
   type: EAiModel;
-  aiPlan: {
+  aiPlans: {
     model: EAiModel;
     plan: PlanEntrySchema[];
-  };
+    createdAt: Date;
+  }[];
   plan: PlanEntrySchema[];
   createdAt?: Date;
   updatedAt?: Date;
@@ -51,10 +52,13 @@ const dietPlanSchema = new Schema<IDietPlan>(
       required: true,
       default: EAiModel.LYCHEE,
     },
-    aiPlan: {
-      model: { type: String, enum: Object.values(EAiModel) },
-      plan: [PlanEntrySchema],
-    },
+    aiPlans: [
+      {
+        model: { type: String, enum: Object.values(EAiModel), required: true },
+        plan: [PlanEntrySchema],
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true }
 );

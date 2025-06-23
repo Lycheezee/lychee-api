@@ -17,10 +17,11 @@ export interface CreateDietPlanDTO {
   nutritionsPerDay: Partial<Nutrition>;
   plan: DailyPlan[];
   type?: EAiModel;
-  aiPlan?: {
+  aiPlans?: {
     model: EAiModel;
     plan: DailyPlan[];
-  };
+    createdAt?: Date;
+  }[];
 }
 
 export interface UpdateDietPlanDTO extends Partial<CreateDietPlanDTO> {}
@@ -29,4 +30,8 @@ export interface UpdateMealStatusDTO {
   date: string; // Date in YYYY-MM-DD format
   foodId: string;
   status: EMealStatus;
+}
+
+export interface BatchUpdateMealStatusDTO {
+  updates: UpdateMealStatusDTO[];
 }

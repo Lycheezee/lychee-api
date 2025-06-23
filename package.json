@@ -10,7 +10,8 @@
     "build": "tsc",
     "start": "node dist/app.js",
     "start:debug": "node --inspect=9229 dist/app.js",
-    "import-food-data": "ts-node src/scripts/importFoodData.ts"
+    "import-food-data": "ts-node src/scripts/importFoodData.ts",
+    "migrate-ai-plans": "ts-node src/scripts/migrateAiPlans.ts"
   },
   "keywords": [],
   "author": "",
@@ -44,3 +45,4 @@
     "typescript": "^5.8.3"
   }
 }
+

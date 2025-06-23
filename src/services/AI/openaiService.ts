@@ -62,7 +62,6 @@ export interface FoodSubstitutionResponse {
 
 export class OpenAIService {
   private client: GoogleGenAI;
-  private user: IUser;
   private dailyNutrition: Nutrition;
   private foodList: IFood[] = [];
   private dateLast?: number;
@@ -71,14 +70,12 @@ export class OpenAIService {
     user: IUser,
     foodList: IFood[],
     dateLast?: number,
-    dailyNutrition?: Nutrition
   ) {
     const apiKey = process.env.OPEN_AI_API_KEY;
     if (!apiKey) {
       throw new Error("OpenAI API key is required");
     }
 
-    this.user = user;
     this.foodList = foodList;
     this.dateLast = dateLast;
     this.dailyNutrition = (user.dietPlan as any).nutritionsPerDay;

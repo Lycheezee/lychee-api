@@ -1,16 +1,17 @@
 import { Request, Response } from "express";
-import DietPlanModel from "../models/dietPlan";
 import { EAiModel } from "../constants/model.enum";
 import {
+  BatchUpdateMealStatusDTO,
   CreateDietPlanDTO,
   UpdateDietPlanDTO,
   UpdateMealStatusDTO,
 } from "../dtos/dietPlan.dto";
+import DietPlanModel from "../models/dietPlan";
 import food from "../models/food";
 import { IUser } from "../models/user";
 import { OpenAIService } from "../services/AI/openaiService";
-import { getRemainingDietPlans } from "../services/dietPlanServices/dietPlanOperations";
 import * as dietPlanService from "../services/dietPlanServices/dietPlanServices";
+import { addOrUpdateAiPlan } from "../utils/aiPlanUtils";
 import catchAsync from "../utils/catchAsync";
 import CurrentUser from "../utils/currentUser";
 
@@ -57,7 +58,7 @@ export const updateDietPlanWithAI = catchAsync(
     const user = (req as any).user as IUser;
 
     const foodList = await food.find().lean();
-    const dateLast = await getRemainingDietPlans(
+    const dateLast = await dietPlanService.getRemainingDietPlans(
       user.dietPlan._id.toString(),
       user.mealPlanDays
     );
@@ -81,15 +82,29 @@ export const updateDietPlanWithAI = catchAsync(
       default:
         return res.status(400).json({ message: "Invalid AI model specified" });
     }
-
-    const aiPlan = {
+    const newAiPlan = {
       model: model,
       plan: updateDietPlan as any,
+      createdAt: new Date(),
     };
+
+    // Get existing diet plan to preserve existing AI plans
+    const existingDietPlan = await dietPlanService.getDietPlanById(
+      req.params.id
+    );
+    if (!existingDietPlan) {
+      return res.status(404).json({ message: "Diet plan not found" });
+    }
+
+    // Use utility function to add or update AI plan
+    const updatedAiPlans = addOrUpdateAiPlan(
+      existingDietPlan.aiPlans,
+      newAiPlan
+    );
 
     const dietPlan = await dietPlanService.updateDietPlan(req.params.id, {
       type: model,
-      aiPlan,
+      aiPlans: updatedAiPlans,
     });
     if (!dietPlan) {
       return res.status(404).json({ message: "Diet plan not found" });
@@ -111,13 +126,27 @@ export const deleteDietPlan = catchAsync(
 export const updateMealStatus = catchAsync(
   async (req: Request, res: Response) => {
     const dietPlanId = req.params.id;
-    const updateData: UpdateMealStatusDTO = req.body;
+    const requestBody = req.body;
 
     try {
-      const updatedDietPlan = await dietPlanService.updateMealStatus(
-        dietPlanId,
-        updateData
-      );
+      let updatedDietPlan: any;
+
+      // Check if this is a batch update (has 'updates' array) or single update
+      if (requestBody.updates && Array.isArray(requestBody.updates)) {
+        // Batch update
+        const batchUpdateData: BatchUpdateMealStatusDTO = requestBody;
+        updatedDietPlan = await dietPlanService.updateMealStatusBatch(
+          dietPlanId,
+          batchUpdateData
+        );
+      } else {
+        // Single update (backwards compatibility)
+        const updateData: UpdateMealStatusDTO = requestBody;
+        updatedDietPlan = await dietPlanService.updateMealStatus(
+          dietPlanId,
+          updateData
+        );
+      }
 
       if (!updatedDietPlan) {
         return res.status(404).json({ message: "Diet plan not found" });
@@ -126,6 +155,7 @@ export const updateMealStatus = catchAsync(
       res.json({
         message: "Meal status updated successfully",
         dietPlan: updatedDietPlan,
+        updatesProcessed: requestBody.updates ? requestBody.updates.length : 1,
       });
     } catch (error) {
       if (error instanceof Error) {
@@ -135,3 +165,77 @@ export const updateMealStatus = catchAsync(
     }
   }
 );
+
+export const updateMealStatusBatch = catchAsync(
+  async (req: Request, res: Response) => {
+    const dietPlanId = req.params.id;
+    const batchUpdateData: BatchUpdateMealStatusDTO = req.body;
+
+    try {
+      if (!batchUpdateData.updates || !Array.isArray(batchUpdateData.updates)) {
+        return res.status(400).json({
+          message: "Invalid request format. Expected 'updates' array.",
+        });
+      }
+
+      if (batchUpdateData.updates.length === 0) {
+        return res.status(400).json({
+          message: "No meal status updates provided",
+        });
+      }
+
+      const updatedDietPlan = await dietPlanService.updateMealStatusBatch(
+        dietPlanId,
+        batchUpdateData
+      );
+
+      if (!updatedDietPlan) {
+        return res.status(404).json({ message: "Diet plan not found" });
+      }
+
+      res.json({
+        message: "Meal statuses updated successfully",
+        dietPlan: updatedDietPlan,
+        updatesProcessed: batchUpdateData.updates.length,
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        return res.status(400).json({ message: error.message });
+      }
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  }
+);
+
+export const getAiPlans = catchAsync(async (req: Request, res: Response) => {
+  const dietPlanId = req.params.id;
+
+  try {
+    const dietPlan = await dietPlanService.getDietPlanById(dietPlanId);
+    if (!dietPlan) {
+      return res.status(404).json({ message: "Diet plan not found" });
+    }
+
+    const aiPlans = dietPlan.aiPlans || [];
+
+    // Return AI plans with metadata
+    const aiPlansWithStats = aiPlans.map((aiPlan) => ({
+      model: aiPlan.model,
+      createdAt: aiPlan.createdAt,
+      planCount: aiPlan.plan.length,
+      isActive: aiPlan.model === dietPlan.type,
+    }));
+
+    res.json({
+      message: "AI plans retrieved successfully",
+      aiPlans: aiPlansWithStats,
+      totalPlans: aiPlans.length,
+      activeModel: dietPlan.type,
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      return res.status(400).json({ message: error.message });
+    }
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});

@@ -49,7 +49,6 @@ export const updateUser = catchAsync(async (req: Request, res: Response) => {
   if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
   const updateData: UpdateUserDTO = req.body;
-
   const type = req.query.type;
 
   switch (type) {
@@ -89,12 +88,14 @@ export const updateUser = catchAsync(async (req: Request, res: Response) => {
           .status(400)
           .json({ message: "Body info is required to get meal plan" });
       }
-      await userService.updateUser(userId.toString(), {
+
+      const updatedUser = await userService.updateUser(userId.toString(), {
         mealPlanDays: +updateData.mealPlanDays,
       });
+
       await LycheeAIService.getSimilarMealPlans(+updateData.mealPlanDays, user);
 
-      return res.status(200);
+      return res.status(200).json(updatedUser);
     }
   }
   const result = await userService.updateUser(userId.toString(), updateData);

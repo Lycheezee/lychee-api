@@ -6,11 +6,13 @@ import { IUser } from "../models/user";
 // Business logic representation of diet plan
 export interface DietPlan {
   _id?: string;
+  type?: EAiModel;
   nutritionsPerDay: Nutrition;
-  aiPlan?: {
+  aiPlans?: {
     model: EAiModel;
     plan: DailyPlan[];
-  }
+    createdAt: Date;
+  }[];
   plan: DailyPlan[];
   createdAt?: Date;
   updatedAt?: Date;

@@ -155,6 +155,7 @@ export async function updateUser(
   middleName?: string;
   bodyInfo?: any;
   dietPlan?: DailyPlan;
+  mealPlanDays?: number;
 } | null> {
   const user = await User.findById(id);
   if (!user) return null;
@@ -163,8 +164,7 @@ export async function updateUser(
   if ((data as any).password) {
     (data as any).hashPassword = await bcrypt.hash((data as any).password, 10);
     delete (data as any).password;
-  }
-  // Update user fields
+  }  // Update user fields
   if (data.firstName !== undefined) user.firstName = data.firstName;
   if (data.lastName !== undefined) user.lastName = data.lastName;
   if (data.middleName !== undefined) user.middleName = data.middleName;
@@ -173,6 +173,7 @@ export async function updateUser(
     user.dateOfBirth = new Date(data.dateOfBirth);
   }
   if (data.dietPlan !== undefined) user.dietPlan = new ObjectId(data.dietPlan);
+  if (data.mealPlanDays !== undefined) user.mealPlanDays = data.mealPlanDays;
 
   // Update body info if provided
   if (data.bodyInfo) {
@@ -236,7 +237,6 @@ export async function updateUser(
     };
     CacheService.setUser(id, userWithDietPlan as IUser);
   }
-
   return {
     _id: updatedUser._id.toString(),
     email: updatedUser.email,
@@ -245,6 +245,7 @@ export async function updateUser(
     middleName: updatedUser.middleName,
     bodyInfo: updatedUser.bodyInfo,
     dietPlan: dietPlan as never as DailyPlan,
+    mealPlanDays: updatedUser.mealPlanDays,
   };
 }
 
