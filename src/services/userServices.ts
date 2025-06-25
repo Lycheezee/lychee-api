@@ -164,7 +164,7 @@ export async function updateUser(
   if ((data as any).password) {
     (data as any).hashPassword = await bcrypt.hash((data as any).password, 10);
     delete (data as any).password;
-  }  // Update user fields
+  } // Update user fields
   if (data.firstName !== undefined) user.firstName = data.firstName;
   if (data.lastName !== undefined) user.lastName = data.lastName;
   if (data.middleName !== undefined) user.middleName = data.middleName;
@@ -225,11 +225,10 @@ export async function updateUser(
       );
     } catch (error) {
       console.error("Error fetching diet plan during user update:", error);
-      // Continue without diet plan if fetch fails
+
     }
   }
 
-  // Create user object with diet plan for caching
   if (userWithoutPassword) {
     const userWithDietPlan = {
       ...userWithoutPassword,

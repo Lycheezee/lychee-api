@@ -93,8 +93,7 @@ export const updateUser = catchAsync(async (req: Request, res: Response) => {
         mealPlanDays: +updateData.mealPlanDays,
       });
 
-      await LycheeAIService.getSimilarMealPlans(+updateData.mealPlanDays, user);
-
+      LycheeAIService.getSimilarMealPlans(+updateData.mealPlanDays, user);
       return res.status(200).json(updatedUser);
     }
   }

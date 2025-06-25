@@ -57,38 +57,7 @@ export const updateDietPlanWithAI = catchAsync(
     const model = req.body.model as EAiModel;
     const user = (req as any).user as IUser;
 
-    const foodList = await food.find().lean();
-    const dateLast = await dietPlanService.getRemainingDietPlans(
-      user.dietPlan._id.toString(),
-      user.mealPlanDays
-    );
-    const OpenAIServiceInstance = new OpenAIService(user, foodList, dateLast);
-
-    let updateDietPlan = {};
-    switch (model) {
-      case EAiModel.GEMMA:
-        updateDietPlan = await OpenAIServiceInstance.getGemmaResponse();
-        break;
-      case EAiModel.GEMINI:
-        updateDietPlan = await OpenAIServiceInstance.getFlashResponse();
-        break;
-      case EAiModel.LYCHEE:
-        const dietPlan = await DietPlanModel.findByIdAndUpdate(
-          user.dietPlan._id.toString(),
-          { type: model },
-          { new: true }
-        );
-        return res.json(dietPlan);
-      default:
-        return res.status(400).json({ message: "Invalid AI model specified" });
-    }
-    const newAiPlan = {
-      model: model,
-      plan: updateDietPlan as any,
-      createdAt: new Date(),
-    };
-
-    // Get existing diet plan to preserve existing AI plans
+    // Get existing diet plan first to check for existing AI plans
     const existingDietPlan = await dietPlanService.getDietPlanById(
       req.params.id
     );
@@ -96,12 +65,62 @@ export const updateDietPlanWithAI = catchAsync(
       return res.status(404).json({ message: "Diet plan not found" });
     }
 
-    // Use utility function to add or update AI plan
-    const updatedAiPlans = addOrUpdateAiPlan(
-      existingDietPlan.aiPlans,
-      newAiPlan
+    // Handle LYCHEE model - no AI plan needed
+    if (model === EAiModel.LYCHEE) {
+      const dietPlan = await DietPlanModel.findByIdAndUpdate(
+        user.dietPlan._id.toString(),
+        { type: model },
+        { new: true }
+      );
+      return res.json(dietPlan);
+    }
+
+    // Check if user already has a plan for this model
+    const existingAiPlan = existingDietPlan.aiPlans?.find(
+      (aiPlan) => aiPlan.model === model
     );
 
+    let updatedAiPlans = existingDietPlan.aiPlans || [];
+
+    if (existingAiPlan) {
+      // User already has a plan for this model, use existing plan
+      console.log(`Using existing AI plan for model: ${model}`);
+    } else {
+      // User doesn't have a plan for this model, create new one
+      console.log(`Creating new AI plan for model: ${model}`);
+
+      const foodList = await food.find().lean();
+      const dateLast = await dietPlanService.getRemainingDietPlans(
+        user.dietPlan._id.toString(),
+        user.mealPlanDays
+      );
+      const OpenAIServiceInstance = new OpenAIService(user, foodList, dateLast);
+
+      let updateDietPlan = {};
+      switch (model) {
+        case EAiModel.GEMMA:
+          updateDietPlan = await OpenAIServiceInstance.getGemmaResponse();
+          break;
+        case EAiModel.GEMINI:
+          updateDietPlan = await OpenAIServiceInstance.getFlashResponse();
+          break;
+        default:
+          return res
+            .status(400)
+            .json({ message: "Invalid AI model specified" });
+      }
+
+      const newAiPlan = {
+        model: model,
+        plan: updateDietPlan as any,
+        createdAt: new Date(),
+      };
+
+      // Use utility function to add the new AI plan
+      updatedAiPlans = addOrUpdateAiPlan(existingDietPlan.aiPlans, newAiPlan);
+    }
+
+    // Update diet plan with the selected model type and AI plans
     const dietPlan = await dietPlanService.updateDietPlan(req.params.id, {
       type: model,
       aiPlans: updatedAiPlans,
