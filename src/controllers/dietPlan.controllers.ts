@@ -14,6 +14,7 @@ import * as dietPlanService from "../services/dietPlanServices/dietPlanServices"
 import { addOrUpdateAiPlan } from "../utils/aiPlanUtils";
 import catchAsync from "../utils/catchAsync";
 import CurrentUser from "../utils/currentUser";
+import logger from "../utils/logger";
 
 export const createDietPlan = catchAsync(
   async (req: Request, res: Response) => {
@@ -67,12 +68,18 @@ export const updateDietPlanWithAI = catchAsync(
 
     // Handle LYCHEE model - no AI plan needed
     if (model === EAiModel.LYCHEE) {
-      const dietPlan = await DietPlanModel.findByIdAndUpdate(
+      await DietPlanModel.findByIdAndUpdate(
         user.dietPlan._id.toString(),
         { type: model },
         { new: true }
       );
-      return res.json(dietPlan);
+
+      // Get the updated diet plan with proper business logic and cache it
+      const updatedDietPlan = await dietPlanService.getDietPlanById(
+        user.dietPlan._id.toString()
+      );
+
+      return res.json(updatedDietPlan);
     }
 
     // Check if user already has a plan for this model
@@ -83,11 +90,9 @@ export const updateDietPlanWithAI = catchAsync(
     let updatedAiPlans = existingDietPlan.aiPlans || [];
 
     if (existingAiPlan) {
-      // User already has a plan for this model, use existing plan
-      console.log(`Using existing AI plan for model: ${model}`);
+      logger.info(`Using existing AI plan for model: ${model}`);
     } else {
-      // User doesn't have a plan for this model, create new one
-      console.log(`Creating new AI plan for model: ${model}`);
+      logger.info(`Creating new AI plan for model: ${model}`);
 
       const foodList = await food.find().lean();
       const dateLast = await dietPlanService.getRemainingDietPlans(
