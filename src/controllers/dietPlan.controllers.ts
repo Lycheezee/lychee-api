@@ -92,15 +92,13 @@ export const updateDietPlanWithAI = catchAsync(
     if (existingAiPlan) {
       logger.info(`Using existing AI plan for model: ${model}`);
     } else {
-      logger.info(`Creating new AI plan for model: ${model}`);
-
       const foodList = await food.find().lean();
       const dateLast = await dietPlanService.getRemainingDietPlans(
         user.dietPlan._id.toString(),
         user.mealPlanDays
       );
       const OpenAIServiceInstance = new OpenAIService(user, foodList, dateLast);
-
+      logger.info(`Creating new AI plan for model: ${model} for ${dateLast} days`);
       let updateDietPlan = {};
       switch (model) {
         case EAiModel.GEMMA:

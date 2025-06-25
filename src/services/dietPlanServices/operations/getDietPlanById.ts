@@ -1,7 +1,7 @@
 import { DailyPlan } from "../../../dtos/dietPlan.dto";
 import DietPlanModel from "../../../models/dietPlan";
 import { DietPlan } from "../../../types/user";
-import { findAiPlanByModel, getLatestAiPlan } from "../../../utils/aiPlanUtils";
+import { findAiPlanByModel } from "../../../utils/aiPlanUtils";
 import { updateUserCachesForDietPlan } from "../dietPlanCacheManager";
 import { calculateNutritionPercentage } from "../nutritionCalculator";
 
@@ -24,9 +24,10 @@ export async function getDietPlanById(id: string): Promise<DietPlan | null> {
 
   if (!dietPlan) return null;
   // Find the AI plan that matches the current type, or use the latest one
-  const currentAiPlan =
-    findAiPlanByModel(dietPlan.aiPlans as any, dietPlan.type) ||
-    getLatestAiPlan(dietPlan.aiPlans as any);
+  const currentAiPlan = findAiPlanByModel(
+    dietPlan.aiPlans as any,
+    dietPlan.type
+  );
 
   const choosenPlan = currentAiPlan?.plan || dietPlan.plan;
 
@@ -40,11 +41,25 @@ export async function getDietPlanById(id: string): Promise<DietPlan | null> {
     percentageOfCompletions: entry.percentageOfCompletions,
   }));
 
+  const businessAiPlans = (dietPlan.aiPlans || []).map((aiPlan: any) => ({
+    model: aiPlan.model,
+    plan: aiPlan.plan.map((entry: any) => ({
+      ...entry,
+      meals: entry.meals.map((meal: any) => ({
+        ...meal.foodId,
+        foodId: meal.foodId._id.toString(),
+        status: meal.status,
+      })),
+    })),
+    createdAt: aiPlan.createdAt,
+  }));
+
   const updatedPlan = await calculateNutritionPercentage(businessPlan);
   const businessResult = {
     _id: dietPlan._id.toString(),
     nutritionsPerDay: dietPlan.nutritionsPerDay,
     plan: updatedPlan,
+    aiPlans: businessAiPlans,
     type: dietPlan.type,
     createdAt: dietPlan.createdAt,
     updatedAt: dietPlan.updatedAt,
